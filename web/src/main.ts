@@ -201,7 +201,7 @@ async function renderOrder() {
   merchantHash(plan.merchant, plan.net);
   const tx = p.get('tx');
   app.innerHTML = `<section class="card">${planCard(plan)}
-    ${tx ? `<p class="ok">Order started. <a href="${explorer(plan.net, tx)}" target="_blank" rel="noopener">View transaction</a></p>` : ''}
+    ${tx ? `<p class="ok" id="started">Order started. <a href="${explorer(plan.net, tx)}" target="_blank" rel="noopener">View transaction</a></p>` : ''}
     <div id="state" class="state">Loading order...</div>
     <div class="actions"><button class="btn" id="collect">Collect due payment</button> <button class="btn ghost" id="cancel">Cancel order</button></div>
     <p class="err" id="err" hidden></p><p class="muted" id="msg"></p></section>`;
@@ -216,6 +216,7 @@ async function renderOrder() {
         <details><summary>History (${s.history.length})</summary>${s.history.map((h) => `<div><a href="${explorer(plan.net, h.txid)}" target="_blank" rel="noopener">${h.txid.slice(0, 16)}...</a> ${h.height > 0 ? `block ${h.height}` : 'unconfirmed'}</div>`).join('')}</details>`;
       (document.getElementById('collect') as HTMLButtonElement).disabled = !(s.balance > 0n && s.utxoHeight > 0 && s.nextClaimIn === 0);
       (document.getElementById('cancel') as HTMLButtonElement).disabled = s.balance === 0n;
+      const started = document.getElementById('started'); if (started) started.hidden = s.balance === 0n && s.history.length > 1;
     } catch (x: any) { stateEl.textContent = `Could not load the order: ${x.message}`; }
   };
   document.getElementById('collect')!.addEventListener('click', async () => {
