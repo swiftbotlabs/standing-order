@@ -63,7 +63,7 @@ due periods (it holds no keys).
 WizardConnect wallets could not sign functions of multi-function contracts, because signatures inside an `OP_INVOKE`d
 function cover the function body while `getWcContractInfo()` passed the full redeem script. Wallets add to it: Paytaca
 always covers the full redeem script taken from the unlocking bytecode. We first worked around it in the request
-(`scripts/archive/`), then removed the need entirely with the cancel design above; a fix is prepared for upstream.
+(`scripts/archive/`), then removed the need entirely with the cancel design above. Upstream fix: https://github.com/solidcash/solidcash/pull/1.
 
 ## License
 MIT
