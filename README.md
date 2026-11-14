@@ -20,9 +20,9 @@ The period check is a relative timelock (`this.age >= period`) on the covenant's
 clock: at most one claim per period, enforced by consensus, not by our server.
 
 ## Contracts (SolidCash)
-- `contracts/standing_order.scash` (BCH): `claim()` / `cancel(pk, sig)`, 125 bytes.
+- `contracts/standing_order.scash` (BCH): `claim()` / `cancel(pk, sig)`, 129 bytes.
 - `contracts/standing_order_token.scash` (fungible CashTokens, e.g. PUSD): same rules in tokens; the covenant keeps a small
-  BCH pool for fees; the last claim pays the remaining tokens and BCH to the merchant, 154 bytes.
+  BCH pool for fees; the last claim pays the remaining tokens and BCH to the merchant, 165 bytes.
 
 ## Tests
 ```
