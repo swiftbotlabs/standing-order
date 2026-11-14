@@ -1,0 +1,31 @@
+{
+  "name": "standing-order",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "solidhat:compile": "solidhat compile",
+    "solidhat:typegen": "solidhat typegen",
+    "solidhat:test": "solidhat test",
+    "solidhat:deploy": "solidhat deploy",
+    "solidhat:clean": "solidhat clean"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@bch-wc2/privkey-connector": "^0.0.16",
+    "@solidcash/solidc": "^0.50.0",
+    "@solidcash/solidcash": "^0.50.1",
+    "@solidcash/solidhat": "^0.50.0",
+    "@wizardconnect/core": "^0.2.10",
+    "@wizardconnect/dapp": "^0.2.7"
+  },
+  "private": true,
+  "devDependencies": {
+    "@solidcash/solidhat": "^0.50.0",
+    "typescript": "^5.6.3",
+    "vitest": "^3.2.4"
+  }
+}

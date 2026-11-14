@@ -1,0 +1,47 @@
+pragma solidcash ^0.50.0;
+
+/* Standing Order: a recurring payment (subscription) on Bitcoin Cash.
+ *
+ * The subscriber funds this contract once. After each `period` (a relative timelock on the contract
+ * UTXO, in blocks) anyone may trigger `claim`, which pays the merchant exactly `amountPerPeriod` and
+ * sends the rest back to this same contract, so the next claim must wait another full period.
+ * The subscriber can `cancel` at any time and take back everything that is left.
+ *
+ * Based on the Mecenas covenant (examples/mecenas.scash), with the period check restored and the
+ * final-claim rule made exact.
+ */
+contract StandingOrder(
+    bytes20 merchant,
+    bytes20 subscriber,
+    int amountPerPeriod,
+    int period,
+    int maxFee
+) {
+    // Pay one period's amount to the merchant; anyone may broadcast it (no signature needed).
+    function claim() {
+        // At most one claim per period: the UTXO must be at least `period` blocks old.
+        require(this.age >= period);
+
+        // Output 0 always pays the merchant.
+        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(merchant));
+
+        int currentValue = tx.inputs[this.activeInputIndex].value;
+        int changeValue = currentValue - amountPerPeriod - maxFee;
+
+        if (changeValue < amountPerPeriod + maxFee) {
+            // Last claim: what is left (minus at most maxFee) goes to the merchant; the order ends.
+            require(tx.outputs[0].value >= currentValue - maxFee);
+        } else {
+            // Regular claim: exactly one period's amount, and the change stays in this contract.
+            require(tx.outputs[0].value == amountPerPeriod);
+            require(tx.outputs[1].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode);
+            require(tx.outputs[1].value >= changeValue);
+        }
+    }
+
+    // The subscriber cancels and takes back everything that is left.
+    function cancel(pubkey pk, sig s) {
+        require(hash160(pk) == subscriber);
+        require(checkSig(s, pk));
+    }
+}

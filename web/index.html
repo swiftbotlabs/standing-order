@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Standing Order: subscriptions on Bitcoin Cash</title>
+  <meta name="description" content="Recurring payments in BCH that pay themselves, with no custody: the subscriber funds a covenant, the merchant can take one period's amount per period, and the subscriber can cancel any time." />
+  <link rel="icon" href="/icon.png" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div class="banner" role="note">
+    <strong>BCH BLAZE 2026 entry</strong>
+    <a id="bn-slides" href="/deck.pdf" target="_blank" rel="noopener">Presentation</a>
+    <a id="bn-repo" href="#" target="_blank" rel="noopener">Source code</a>
+    <span>EMBER2026 votes: <code id="bn-addr">bitcoincash:zpgquneyckvcchup87e8ts7zljkc6aks4yalmfcay8</code></span>
+  </div>
+  <header class="top">
+    <a href="#/" class="brand"><span class="mark" aria-hidden="true">⟳</span> Standing Order</a>
+    <nav><a href="#/new">Create a pay link</a> · <a href="#/merchant">Merchants</a></nav>
+  </header>
+  <main id="app" aria-live="polite"></main>
+  <footer class="foot">
+    Non-custodial: funds sit in a Bitcoin Cash covenant, not with us. Contract written in SolidCash.
+    <span id="netbadge"></span>
+  </footer>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

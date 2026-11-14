@@ -1,0 +1,13 @@
+name = "standing-order"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
+
+[[kv_namespaces]]
+binding = "SO_ORDERS"
+id = "5c32ec941e974f50a2a11678472f5571"
