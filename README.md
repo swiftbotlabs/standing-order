@@ -27,11 +27,11 @@ clock: at most one claim per period, enforced by consensus, not by our server.
 ## Tests
 ```
 npm install
-npx --no-install solidhat test     # 18 mock-network tests (both contracts), all assertions awaited
+npx --no-install solidhat test     # 19 mock-network tests (both contracts), all assertions awaited
 ```
 Negative tests were proven with planted controls (flipping an expectation turns the suite red).
 
-## Proven on chipnet
+## Proven on chipnet (contract logic; these runs predate the per-subscription orderId argument, which changes only the address)
 - Early claim refused by the network; claim after one confirmed block paid the merchant exactly 20,000 sats
   (026fb3adafab7578cf0ac187fcd96ce01337e1e465d8cb2facd77cbab6bf20d5); immediate re-claim refused; cancel refunded
   (6f5d17649dd984871aa63fd2b9ba46708e9ba28c2dc775e702d480e4cb654177).
@@ -54,3 +54,8 @@ function cover the function body while `getWcContractInfo()` passed the full red
 
 ## License
 MIT
+
+## Order ids
+Every subscription gets a random 8-byte `orderId` constructor argument (unused by the logic). It gives each order its own
+covenant address, so subscribing twice to the same plan creates two independent orders instead of one covenant that could
+be claimed twice per period.
