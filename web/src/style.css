@@ -47,3 +47,26 @@ main { max-width: 960px; margin: 0 auto; padding: 0 16px 48px; }
 .ok { color: var(--ok); } .err { color: var(--warn); }
 details { margin-top: 6px; } details div { font-size: 14px; }
 .foot { max-width: 960px; margin: 0 auto; padding: 24px 16px; color: var(--muted); font-size: 13px; }
+
+.small { font-size: 13px; }
+.timeline { margin: 8px 0 24px; overflow-x: auto; }
+.timeline svg { width: 100%; height: auto; display: block; }
+.tl-line { stroke: var(--line); stroke-width: 4; stroke-linecap: round; }
+.tl-dot circle { fill: var(--brand); } .tl-dot.alt circle { fill: #4a5a52; }
+.tl-dot text { fill: #fff; font: 700 15px ui-sans-serif, system-ui, sans-serif; text-anchor: middle; }
+.tl-l { fill: var(--ink); font: 600 14px ui-sans-serif, system-ui, sans-serif; text-anchor: middle; }
+.tl-s { fill: var(--muted); font: 12px ui-sans-serif, system-ui, sans-serif; text-anchor: middle; }
+.facts { list-style: none; padding: 0; margin: 24px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.facts li { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--card); font-size: 14px; color: var(--muted); }
+.facts b { color: var(--ink); }
+.next { margin: 12px 0 16px; padding-left: 20px; color: var(--muted); font-size: 14px; }
+
+.tl-list { display: none; margin: 0; padding-left: 20px; color: var(--muted); }
+.tl-list li { margin: 4px 0; } .tl-list b { color: var(--ink); }
+.brand { white-space: nowrap; }
+@media (max-width: 560px) {
+  .timeline svg { display: none; }
+  .tl-list { display: block; }
+  .top { flex-wrap: wrap; gap: 6px; }
+  .top nav { font-size: 14px; }
+}

@@ -32,6 +32,7 @@ window.addEventListener('hashchange', render);
 // ---- home ------------------------------------------------------------------
 function renderHome() {
   const demo = `#/pay?p=${encodePlan(demoPlan('mainnet'))}`;
+  const demoChip = `#/pay?p=${encodePlan({ ...demoPlan('chipnet'), merchant: 'bchtest:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqxwsz2ry3', label: 'Standing Order demo on chipnet (test coins)' })}`;
   app.innerHTML = `
   <section class="hero">
     <h1>Subscriptions that pay themselves.<br/>On Bitcoin Cash.</h1>
@@ -41,12 +42,34 @@ function renderHome() {
       <a class="btn primary" href="${demo}">Try it: 1 cent a block</a>
       <a class="btn" href="#/new">Create a pay link</a>
     </div>
+    <p class="muted small">No BCH handy? <a href="${demoChip}">Try it on chipnet</a> with free test coins.</p>
+  </section>
+  <section class="timeline" aria-label="How a standing order works">
+    <svg viewBox="0 0 720 120" role="img" aria-labelledby="tl-t"><title id="tl-t">Fund once, paid each period, cancel any time</title>
+      <line x1="40" y1="60" x2="680" y2="60" class="tl-line"/>
+      <g class="tl-dot"><circle cx="60" cy="60" r="16"/><text x="60" y="66">1</text></g>
+      <g class="tl-dot"><circle cx="250" cy="60" r="16"/><text x="250" y="66">2</text></g>
+      <g class="tl-dot"><circle cx="440" cy="60" r="16"/><text x="440" y="66">3</text></g>
+      <g class="tl-dot alt"><circle cx="640" cy="60" r="16"/><text x="640" y="66">✕</text></g>
+      <text x="60" y="104" class="tl-l">Fund once</text>
+      <text x="250" y="104" class="tl-l">Period 1 paid</text>
+      <text x="440" y="104" class="tl-l">Period 2 paid</text>
+      <text x="640" y="104" class="tl-l">Cancel: rest back</text>
+      <text x="155" y="40" class="tl-s">one period</text><text x="345" y="40" class="tl-s">one period</text>
+    </svg>
+    <ol class="tl-list"><li><b>Fund once</b> into the covenant</li><li><b>Each period</b>: exactly one payment to the merchant</li><li><b>Cancel any time</b>: the rest comes back</li></ol>
   </section>
   <section class="steps">
-    <div><b>1. Subscribe</b><p>Connect a wallet that supports WizardConnect and fund the order. Your coins go into a covenant, not to us.</p></div>
-    <div><b>2. It pays on schedule</b><p>After each period anyone can trigger the payment. The contract only allows exactly one period's amount to the merchant.</p></div>
-    <div><b>3. Cancel any time</b><p>One tap with your wallet returns everything still in the order. No one else can move it.</p></div>
-  </section>`;
+    <div><b>Subscribe</b><p>Connect a wallet that supports WizardConnect (Selene, Paytaca) and fund the order. Your coins go into a covenant, not to us.</p></div>
+    <div><b>It pays on schedule</b><p>After each period anyone can trigger the payment, and our relayer does it for the merchant. The contract allows exactly one period's amount.</p></div>
+    <div><b>Cancel any time</b><p>One approval in your wallet returns everything still in the order. No one else can move it.</p></div>
+  </section>
+  <ul class="facts">
+    <li><b>Non-custodial</b> covenant written in SolidCash</li>
+    <li><b>BCH or PUSD</b> stablecoin plans</li>
+    <li><b>Proven on chipnet</b>: early claims refused by the network</li>
+    <li><b>Open source</b> on <a href="https://github.com/swiftbotlabs/standing-order" target="_blank" rel="noopener">GitHub</a></li>
+  </ul>`;
 }
 
 // ---- merchant: create a pay link ------------------------------------------
@@ -138,6 +161,9 @@ function renderPay() {
 
   const connected = (w: WalletInfo) => {
     box.innerHTML = `<p class="ok">Connected: ${esc(w.name)} · <code>${esc(w.address)}</code></p>
+      <ol class="next"><li>Your wallet asks you to approve one transaction that funds the order.</li>
+      <li>After each period the merchant is paid exactly ${esc(formatAmount(plan, plan.amount))}, automatically.</li>
+      <li>You can cancel from the order page at any time and get the rest back.</li></ol>
       <button class="btn primary" id="sub">Subscribe</button>`;
     document.getElementById('sub')!.addEventListener('click', async (e) => {
       const btn = e.currentTarget as HTMLButtonElement; btn.disabled = true; btn.textContent = 'Check your wallet...'; err.hidden = true;
