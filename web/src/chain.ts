@@ -70,16 +70,17 @@ export function provider(net: Net): ElectrumNetworkProvider {
   if (!providers.has(net)) providers.set(net, new ElectrumNetworkProvider(net));
   return providers.get(net)!;
 }
-export function orderContract(plan: Plan, subscriberHash: Uint8Array): Contract {
+export function newOrderId(): Uint8Array { return crypto.getRandomValues(new Uint8Array(8)); }
+export function orderContract(plan: Plan, subscriberHash: Uint8Array, orderId: Uint8Array): Contract {
   if (plan.token) {
     // the covenant compares tokenCategory in the opposite byte order to the wallet/display hex (SolidCash finding 4)
     return new Contract(tokenArtifact as any,
       [merchantHash(plan.merchant, plan.net), subscriberHash, hexToBin(plan.token.category).reverse(), plan.amount,
-        BigInt(plan.period), DUST, MAX_FEE],
+        BigInt(plan.period), DUST, MAX_FEE, orderId],
       { provider: provider(plan.net) });
   }
   return new Contract(artifact as any,
-    [merchantHash(plan.merchant, plan.net), subscriberHash, plan.amount, BigInt(plan.period), MAX_FEE],
+    [merchantHash(plan.merchant, plan.net), subscriberHash, plan.amount, BigInt(plan.period), MAX_FEE, orderId],
     { provider: provider(plan.net) });
 }
 export function fundingTotal(plan: Plan): bigint {
@@ -114,8 +115,8 @@ export function fixCoveredBytecode(wc: any): any {
 }
 
 // ---- transactions ----------------------------------------------------------
-export async function buildFund(plan: Plan, subscriberAddr: string, subscriberHash: Uint8Array) {
-  if (plan.token) return buildFundToken(plan, subscriberAddr, subscriberHash);
+export async function buildFund(plan: Plan, subscriberAddr: string, subscriberHash: Uint8Array, orderId: Uint8Array) {
+  if (plan.token) return buildFundToken(plan, subscriberAddr, subscriberHash, orderId);
   const net = provider(plan.net);
   const utxos = (await net.getUtxos(subscriberAddr)).filter((u: any) => !u.token);
   const total = utxos.reduce((a: bigint, u: any) => a + u.satoshis, 0n);
@@ -123,7 +124,7 @@ export async function buildFund(plan: Plan, subscriberAddr: string, subscriberHa
   const fee = 400n + 150n * BigInt(utxos.length);
   const change = total - fund - fee;
   if (change < 0n) throw new Error(`Your wallet needs ${(fund + fee).toLocaleString()} sats; it has ${total.toLocaleString()}.`);
-  const contract = orderContract(plan, subscriberHash);
+  const contract = orderContract(plan, subscriberHash, orderId);
   let b = new TransactionBuilder({ provider: net })
     .addInputs(utxos, placeholderP2PKHUnlocker(subscriberAddr))
     .addOutput({ to: contract.address, amount: fund });
@@ -135,7 +136,7 @@ export async function buildFund(plan: Plan, subscriberAddr: string, subscriberHa
   return { wc: toWire(wc), inputPaths: utxos.map((_: any, i: number) => [i, 'receive', 0]) as [number, string, number][], contract };
 }
 
-async function buildFundToken(plan: Plan, subscriberAddr: string, subscriberHash: Uint8Array) {
+async function buildFundToken(plan: Plan, subscriberAddr: string, subscriberHash: Uint8Array, orderId: Uint8Array) {
   const net = provider(plan.net);
   const cat = plan.token!.category;
   const all = await net.getUtxos(subscriberAddr);
@@ -151,7 +152,7 @@ async function buildFundToken(plan: Plan, subscriberAddr: string, subscriberHash
   const tokChangeSats = tokChange > 0n ? DUST : 0n;
   const bchChange = satsIn - needSats - tokChangeSats - fee;
   if (bchChange < 0n) throw new Error(`Your wallet needs about ${(needSats + tokChangeSats + fee).toLocaleString()} sats of BCH for fees; it has ${satsIn.toLocaleString()}.`);
-  const contract = orderContract(plan, subscriberHash);
+  const contract = orderContract(plan, subscriberHash, orderId);
   let b = new TransactionBuilder({ provider: net })
     .addInputs(inputs, placeholderP2PKHUnlocker(subscriberAddr))
     .addOutput({ to: contract.tokenAddress, amount: needSats, token: { category: cat, amount: needTok } });
@@ -164,8 +165,8 @@ async function buildFundToken(plan: Plan, subscriberAddr: string, subscriberHash
   return { wc: toWire(wc), inputPaths: inputs.map((_: any, i: number) => [i, 'receive', 0]) as [number, string, number][], contract };
 }
 
-export async function buildCancel(plan: Plan, subscriberAddr: string, subscriberHash: Uint8Array) {
-  const contract = orderContract(plan, subscriberHash);
+export async function buildCancel(plan: Plan, subscriberAddr: string, subscriberHash: Uint8Array, orderId: Uint8Array) {
+  const contract = orderContract(plan, subscriberHash, orderId);
   const utxos = await contract.getUtxos();
   if (!utxos.length) throw new Error('Nothing left in this order.');
   let b = new TransactionBuilder({ provider: provider(plan.net) });
@@ -181,8 +182,8 @@ export async function buildCancel(plan: Plan, subscriberAddr: string, subscriber
 }
 
 // Anyone may claim a due period: no signature, so the page itself can broadcast it.
-export async function claimDue(plan: Plan, subscriberHash: Uint8Array): Promise<string> {
-  const contract = orderContract(plan, subscriberHash);
+export async function claimDue(plan: Plan, subscriberHash: Uint8Array, orderId: Uint8Array): Promise<string> {
+  const contract = orderContract(plan, subscriberHash, orderId);
   const [u] = await contract.getUtxos();
   if (!u) throw new Error('Nothing left in this order.');
   const merchant = addressOfHash(merchantHash(plan.merchant, plan.net), plan.net);
@@ -214,8 +215,8 @@ export interface OrderState {
   periodsLeft: number;
   history: { txid: string; height: number }[];
 }
-export async function orderState(plan: Plan, subscriberHash: Uint8Array): Promise<OrderState> {
-  const contract = orderContract(plan, subscriberHash);
+export async function orderState(plan: Plan, subscriberHash: Uint8Array, orderId: Uint8Array): Promise<OrderState> {
+  const contract = orderContract(plan, subscriberHash, orderId);
   const net = provider(plan.net);
   const [utxos, tip, history] = await Promise.all([
     contract.getUtxos(), net.getBlockHeight(),

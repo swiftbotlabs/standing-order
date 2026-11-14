@@ -2,7 +2,7 @@ import QRCode from 'qrcode';
 import { binToHex, hexToBin } from '@bitauth/libauth';
 import {
   type Plan, type Net, encodePlan, decodePlan, validatePlan, fundingTotal, buildFund, buildCancel, claimDue,
-  orderState, broadcast, merchantHash, formatAmount, fundingTokens, PUSD,
+  orderState, broadcast, merchantHash, formatAmount, fundingTokens, PUSD, newOrderId,
 } from './chain';
 import { WizardSession, type WalletInfo } from './wizard';
 
@@ -142,12 +142,13 @@ function renderPay() {
     document.getElementById('sub')!.addEventListener('click', async (e) => {
       const btn = e.currentTarget as HTMLButtonElement; btn.disabled = true; btn.textContent = 'Check your wallet...'; err.hidden = true;
       try {
-        const { wc, inputPaths } = await buildFund(plan, w.address, w.hash);
+        const oid = newOrderId();
+        const { wc, inputPaths } = await buildFund(plan, w.address, w.hash, oid);
         const hex = await session.sign(wc, inputPaths);
         const txid = await broadcast(plan.net, hex);
         // register the order so the relayer can collect due payments for the merchant (best effort, never blocks)
-        fetch('/api/orders', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ p: params().get('p'), s: binToHex(w.hash) }) }).catch(() => {});
-        location.hash = `#/order?p=${params().get('p')}&s=${binToHex(w.hash)}&tx=${txid}`;
+        fetch('/api/orders', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ p: params().get('p'), s: binToHex(w.hash), o: binToHex(oid) }) }).catch(() => {});
+        location.hash = `#/order?p=${params().get('p')}&s=${binToHex(w.hash)}&o=${binToHex(oid)}&tx=${txid}`;
       } catch (x: any) { showErr(x.message || String(x)); btn.disabled = false; btn.textContent = 'Subscribe'; }
     });
   };
@@ -168,8 +169,8 @@ function renderPay() {
 // ---- order status ----------------------------------------------------------
 async function renderOrder() {
   const p = params();
-  let plan: Plan; let sub: Uint8Array;
-  try { plan = decodePlan(p.get('p') || ''); sub = hexToBin(p.get('s') || ''); if (sub.length !== 20) throw new Error('bad subscriber'); }
+  let plan: Plan; let sub: Uint8Array; let oid: Uint8Array;
+  try { plan = decodePlan(p.get('p') || ''); sub = hexToBin(p.get('s') || ''); oid = hexToBin(p.get('o') || ''); if (sub.length !== 20 || oid.length !== 8) throw new Error('bad order'); }
   catch (x: any) { app.innerHTML = `<section class="card"><p class="err">This order link is not valid.</p></section>`; return; }
   merchantHash(plan.merchant, plan.net);
   const tx = p.get('tx');
@@ -181,7 +182,7 @@ async function renderOrder() {
   const stateEl = document.getElementById('state')!, err = document.getElementById('err')!, msg = document.getElementById('msg')!;
   const refresh = async () => {
     try {
-      const s = await orderState(plan, sub);
+      const s = await orderState(plan, sub, oid);
       stateEl.innerHTML = `<div class="kv"><span>Left in the order</span><b>${esc(formatAmount(plan, s.balance))}</b></div>
         <div class="kv"><span>Periods left</span><b>${s.periodsLeft}</b></div>
         <div class="kv"><span>Next payment</span><b>${s.balance === 0n ? 'order closed' : s.utxoHeight === 0 ? 'after the funding confirms' : s.nextClaimIn === 0 ? 'due now' : `in ${s.nextClaimIn} block(s)`}</b></div>
@@ -193,14 +194,14 @@ async function renderOrder() {
   };
   document.getElementById('collect')!.addEventListener('click', async () => {
     err.hidden = true;
-    try { const t = await claimDue(plan, sub); msg.innerHTML = `Payment sent to the merchant. <a href="${explorer(plan.net, t)}" target="_blank" rel="noopener">View</a>`; refresh(); }
+    try { const t = await claimDue(plan, sub, oid); msg.innerHTML = `Payment sent to the merchant. <a href="${explorer(plan.net, t)}" target="_blank" rel="noopener">View</a>`; refresh(); }
     catch (x: any) { err.hidden = false; err.textContent = /rejected/.test(x.message) ? 'Not due yet: the network refuses a claim before the period has passed.' : x.message; }
   });
   document.getElementById('cancel')!.addEventListener('click', async () => {
     err.hidden = true;
     if (!session.wallet) { err.hidden = false; err.textContent = 'Open the pay link again and connect the subscriber wallet to cancel.'; return; }
     try {
-      const { wc, inputPaths } = await buildCancel(plan, session.wallet.address, sub);
+      const { wc, inputPaths } = await buildCancel(plan, session.wallet.address, sub, oid);
       const t = await broadcast(plan.net, await session.sign(wc, inputPaths));
       msg.innerHTML = `Cancelled; the rest is back in your wallet. <a href="${explorer(plan.net, t)}" target="_blank" rel="noopener">View</a>`; refresh();
     } catch (x: any) { err.hidden = false; err.textContent = x.message; }
@@ -227,11 +228,11 @@ async function renderMerchant() {
     if (!r.orders.length) { list.textContent = 'No orders yet for this address.'; return; }
     const rows = await Promise.all(r.orders.map(async (o: any) => {
       try {
-        const plan = decodePlan(o.p); const st = await orderState(plan, hexToBin(o.s));
+        if (!o.o) return ''; const plan = decodePlan(o.p); const st = await orderState(plan, hexToBin(o.s), hexToBin(o.o));
         const due = st.balance > 0n && st.utxoHeight > 0 && st.nextClaimIn === 0;
         return `<div class="kv"><span>${esc(plan.label)} · ${esc(formatAmount(plan, plan.amount))} ${periodText(plan.period)}</span>
           <b>${st.balance === 0n ? 'closed' : `${esc(formatAmount(plan, st.balance))} left${due ? ' · due' : ''}`}</b></div>
-          <div class="muted"><a href="#/order?p=${o.p}&s=${o.s}">open order</a></div>`;
+          <div class="muted"><a href="#/order?p=${o.p}&s=${o.s}&o=${o.o}">open order</a></div>`;
       } catch { return ''; }
     }));
     list.innerHTML = rows.join('') || 'No valid orders.';

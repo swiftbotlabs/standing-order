@@ -39,8 +39,9 @@ export default {
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
 
     if (url.pathname === '/api/orders' && request.method === 'POST') {
-      const len = Number(request.headers.get('content-length') || 0);
-      if (len > MAX_BODY) return json({ error: 'too large' }, 413);
+      const cl = request.headers.get('content-length');
+      if (cl === null) return json({ error: 'content-length required' }, 411);
+      if (!/^\d+$/.test(cl) || Number(cl) > MAX_BODY) return json({ error: 'too large' }, 413);
       const ip = request.headers.get('cf-connecting-ip') || 'unknown';
       const day = new Date().toISOString().slice(0, 10);
       const rlKey = `rl:${day}:${await sha256hex(ip)}`;
@@ -50,9 +51,10 @@ export default {
       try { body = JSON.parse((await request.text()).slice(0, MAX_BODY)); } catch { return json({ error: 'bad json' }, 400); }
       try {
         if (typeof body.s !== 'string' || !/^[0-9a-f]{40}$/.test(body.s)) throw new Error('bad subscriber');
+        if (typeof body.o !== 'string' || !/^[0-9a-f]{16}$/.test(body.o)) throw new Error('bad order id');
         const { net, merchant } = checkPlan(b64urlToJson(body.p));
-        const id = (await sha256hex(`${body.p}|${body.s}`)).slice(0, 32);
-        const rec = JSON.stringify({ p: body.p, s: body.s, net, merchant, t: Date.now() });
+        const id = (await sha256hex(`${body.p}|${body.s}|${body.o}`)).slice(0, 32);
+        const rec = JSON.stringify({ p: body.p, s: body.s, o: body.o, net, merchant, t: Date.now() });
         await env.SO_ORDERS.put(`o:${id}`, rec);
         await env.SO_ORDERS.put(`m:${merchant}:${id}`, rec);
         await env.SO_ORDERS.put(rlKey, String(used + 1), { expirationTtl: 172800 });

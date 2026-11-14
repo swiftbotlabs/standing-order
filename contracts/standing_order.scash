@@ -15,7 +15,10 @@ contract StandingOrder(
     bytes20 subscriber,
     int amountPerPeriod,
     int period,
-    int maxFee
+    int maxFee,
+    // Random per subscription: gives every order its own covenant address, so subscribing to the same plan
+    // twice never makes one covenant pay twice per period. Not used by the logic.
+    bytes8 orderId
 ) {
     // Pay one period's amount to the merchant; anyone may broadcast it (no signature needed).
     function claim() {

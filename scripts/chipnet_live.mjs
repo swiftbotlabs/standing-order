@@ -14,8 +14,9 @@ const sub = key(0), mer = key(1);
 const addr = (pub) => { const r = encodeCashAddress({ prefix: "bchtest", type: "p2pkh", payload: hash160(pub) }); return typeof r === "string" ? r : r.address; };
 
 const AMOUNT = 20_000n, PERIOD = 1n, MAXFEE = 1_000n;   // 1-block period for the test
+const ORDER_ID = Uint8Array.from(Buffer.from(process.env.ORDER_ID || "0102030405060708", "hex"));
 const provider = new ElectrumNetworkProvider("chipnet");
-const contract = new Contract(artifact, [hash160(mer.pub), hash160(sub.pub), AMOUNT, PERIOD, MAXFEE], { provider });
+const contract = new Contract(artifact, [hash160(mer.pub), hash160(sub.pub), AMOUNT, PERIOD, MAXFEE, ORDER_ID], { provider });
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 const fmt = (u) => u.map((x) => `${x.txid.slice(0, 10)}:${x.vout} ${x.satoshis}`).join(", ") || "none";
 

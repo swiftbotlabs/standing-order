@@ -33,7 +33,7 @@ if (cmd === "genesis") {
 }
 if (!state.category) throw new Error("run genesis first");
 // NOTE (finding 4): the contract compares tokenCategory in the opposite byte order to the SDK's hex.
-const contract = new Contract(artifact, [hash160(mer.pub), hash160(sub.pub), hexToBin(state.category).reverse(), PER, PERIOD, DUST, MAXFEE], { provider });
+const contract = new Contract(artifact, [hash160(mer.pub), hash160(sub.pub), hexToBin(state.category).reverse(), PER, PERIOD, DUST, MAXFEE, Uint8Array.from(Buffer.from(process.env.ORDER_ID || "0102030405060708", "hex"))], { provider });
 log("contract", contract.tokenAddress, "| category", state.category.slice(0, 12), "| height", await provider.getBlockHeight());
 const cu = await contract.getUtxos();
 const show = (us) => us.map((x) => `${x.txid.slice(0, 10)}:${x.vout} ${x.satoshis}${x.token ? ` +${x.token.amount}tok` : ""}`).join(", ") || "none";

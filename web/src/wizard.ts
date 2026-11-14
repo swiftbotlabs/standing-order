@@ -20,7 +20,7 @@ export class WizardSession {
     this.mgr = mgr;
     let relayRef: ReturnType<typeof initiateDappRelay> | null = null;
     const relay = initiateDappRelay((st: any) => {
-      onStatus(String(st?.status ?? ''));
+      onStatus(String(st?.status?.status ?? st?.status ?? ''));
       mgr.updateConnection(relayRef?.client ?? null, st);
     });
     relayRef = relay;

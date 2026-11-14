@@ -14,7 +14,10 @@ contract StandingOrderToken(
     int tokensPerPeriod,
     int period,
     int dust,
-    int maxFee
+    int maxFee,
+    // Random per subscription: gives every order its own covenant address, so subscribing to the same plan
+    // twice never makes one covenant pay twice per period. Not used by the logic.
+    bytes8 orderId
 ) {
     function claim() {
         require(this.age >= period);

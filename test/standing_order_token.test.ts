@@ -24,7 +24,7 @@ function setup(tokens: bigint, category?: string) {
   const cat = category ?? tok.category;
   const contract = new Contract(
     artifact as any,
-    [hash160(pub(merchantPriv)), hash160(pub(subscriberPriv)), hexToBin(cat).reverse(), PER, PERIOD, DUST, MAXFEE],
+    [hash160(pub(merchantPriv)), hash160(pub(subscriberPriv)), hexToBin(cat).reverse(), PER, PERIOD, DUST, MAXFEE, Uint8Array.from([9, 9, 9, 9, 9, 9, 9, 9])],
     { provider },
   );
   const utxo = { ...randomUtxo({ token: tok }), satoshis: SATS };

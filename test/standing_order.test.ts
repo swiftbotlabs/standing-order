@@ -18,12 +18,13 @@ const strangerPriv = priv(3);
 const AMOUNT = 10_000n;   // per period
 const PERIOD = 6n;        // blocks
 const MAXFEE = 1_000n;
+const ORDER_ID = Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8]);
 
 function setup(value: bigint) {
   const provider = new MockNetworkProvider();
   const contract = new Contract(
     artifact as any,
-    [hash160(pub(merchantPriv)), hash160(pub(subscriberPriv)), AMOUNT, PERIOD, MAXFEE],
+    [hash160(pub(merchantPriv)), hash160(pub(subscriberPriv)), AMOUNT, PERIOD, MAXFEE, ORDER_ID],
     { provider },
   );
   const utxo = { ...randomUtxo(), satoshis: value };
@@ -101,5 +102,15 @@ describe('StandingOrder.cancel', () => {
       .addInput(utxo, contract.unlock.cancel(pub(strangerPriv), new SignatureTemplate(strangerPriv)))
       .addOutput({ to: addr(strangerPriv), amount: 100_000n - MAXFEE });
     await expect(tx).toFailRequire();
+  });
+});
+
+describe('StandingOrder.orderId', () => {
+  it('gives two subscriptions to the same plan different covenants', async () => {
+    const provider = new MockNetworkProvider();
+    const args = (id: Uint8Array) => [hash160(pub(merchantPriv)), hash160(pub(subscriberPriv)), AMOUNT, PERIOD, MAXFEE, id];
+    const a = new Contract(artifact as any, args(Uint8Array.from([1, 1, 1, 1, 1, 1, 1, 1])) as any, { provider });
+    const b = new Contract(artifact as any, args(Uint8Array.from([2, 2, 2, 2, 2, 2, 2, 2])) as any, { provider });
+    expect(a.address).not.toBe(b.address);
   });
 });

@@ -30,12 +30,13 @@ const addr = (h, net, tokens) => { const r = encodeCashAddress({ prefix: net ===
 
 async function handle(o) {
   const plan = decodePlan(o.p);
-  const sub = hexToBin(o.s);
-  if (sub.length !== 20) throw new Error("bad subscriber");
+  if (!o.o) return "legacy (no order id), skipped";
+  const sub = hexToBin(o.s), oid = hexToBin(o.o);
+  if (sub.length !== 20 || oid.length !== 8) throw new Error("bad subscriber/order id");
   const provider = prov(plan.net);
   const contract = plan.token
-    ? new Contract(tok, [plan.merchantHash, sub, hexToBin(plan.token.category).reverse(), plan.amount, BigInt(plan.period), DUST, MAX_FEE], { provider })
-    : new Contract(bch, [plan.merchantHash, sub, plan.amount, BigInt(plan.period), MAX_FEE], { provider });
+    ? new Contract(tok, [plan.merchantHash, sub, hexToBin(plan.token.category).reverse(), plan.amount, BigInt(plan.period), DUST, MAX_FEE, oid], { provider })
+    : new Contract(bch, [plan.merchantHash, sub, plan.amount, BigInt(plan.period), MAX_FEE, oid], { provider });
   const [u] = await contract.getUtxos();
   if (!u) return "empty";
   const hist = await provider.performRequest("blockchain.address.get_history", contract.address);

@@ -81,7 +81,7 @@ try {
   log("wallet receive/0 pubkey matches");
 
   // 2) subscribe = fund the covenant (subscriber = the wallet's key)
-  const contract = new Contract(artifact, [hash160(pubOf(merchantKey)), hash160(userPub), 20_000n, 1n, 1_000n], { provider });
+  const contract = new Contract(artifact, [hash160(pubOf(merchantKey)), hash160(userPub), 20_000n, 1n, 1_000n, crypto.getRandomValues(new Uint8Array(8))], { provider });
   const total = userUtxos.reduce((a, u) => a + u.satoshis, 0n);
   const fund = new TransactionBuilder({ provider })
     .addInputs(userUtxos, placeholderP2PKHUnlocker(userAddr))
