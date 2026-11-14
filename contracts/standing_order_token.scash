@@ -54,8 +54,9 @@ contract StandingOrderToken(
         }
     }
 
-    function cancel(pubkey pk, sig s) {
-        require(hash160(pk) == subscriber);
-        require(checkSig(s, pk));
+    // Only the subscriber can cancel: the LAST input must be a coin from the subscriber's own address. Their wallet
+    // signs that coin as usual (covering every output), so any BCH wallet can cancel; no signature inside the contract.
+    function cancel() {
+        require(tx.inputs[tx.inputs.length - 1].lockingBytecode == new LockingBytecodeP2PKH(subscriber));
     }
 }

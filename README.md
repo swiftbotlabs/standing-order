@@ -14,24 +14,24 @@ Built for BCH BLAZE 2026 (Mainnet track, SolidCash bounty).
 |---|---|---|
 | Subscribe | subscriber (WizardConnect wallet) | funds a `StandingOrder` covenant with N periods (+ claim fees) |
 | Claim | anyone (our relayer, the page, the merchant) | after `period` blocks, pays the merchant exactly one period; the change must return to the same covenant |
-| Cancel | subscriber only | spends the covenant back to the subscriber with their signature |
+| Cancel | subscriber only | spends the covenant back to the subscriber; authorized by a coin from the subscriber's own address in the same transaction |
 
 The period check is a relative timelock (`this.age >= period`) on the covenant's own UTXO, so every claim restarts the
 clock: at most one claim per period, enforced by consensus, not by our server.
 
 ## Contracts (SolidCash)
-- `contracts/standing_order.scash` (BCH): `claim()` / `cancel(pk, sig)`, 139 bytes.
+- `contracts/standing_order.scash` (BCH): `claim()` / `cancel()`, 202 bytes with its arguments.
 - `contracts/standing_order_token.scash` (fungible CashTokens, e.g. PUSD): same rules in tokens; the covenant keeps a small
-  BCH pool for fees; the last claim pays the remaining tokens and BCH to the merchant, 174 bytes.
+  BCH pool for fees; the last claim pays the remaining tokens and BCH to the merchant, 273 bytes with its arguments.
 
 ## Tests
 ```
 npm install
-npx --no-install solidhat test     # 23 mock-network tests (both contracts), all assertions awaited
+npx --no-install solidhat test     # 27 mock-network tests (both contracts), all assertions awaited
 ```
 Negative tests were proven with planted controls (flipping an expectation turns the suite red).
 
-## Proven on chipnet (contract logic; these runs predate the per-subscription orderId argument, which changes only the address)
+## Proven on chipnet (contract logic; these runs predate the per-subscription orderId and the coin-authorized cancel, which change the address and the cancel input only)
 - Early claim refused by the network; claim after one confirmed block paid the merchant exactly 20,000 sats
   (026fb3adafab7578cf0ac187fcd96ce01337e1e465d8cb2facd77cbab6bf20d5); immediate re-claim refused; cancel refunded
   (6f5d17649dd984871aa63fd2b9ba46708e9ba28c2dc775e702d480e4cb654177).
@@ -41,6 +41,17 @@ Negative tests were proven with planted controls (flipping an expectation turns 
   cancel signed by the wallet (0cd7464af4f629a5488193efb194c083919c559dbe190174970bb40ae686e4a7).
 - The relayer collected a browser-made order on its own (940720a945287eb9589c9cd6900ecded841871ef3e41753867af5048bca4e44f).
 
+## Cancel works in any wallet
+`cancel()` has no signature inside the contract. The last input of a cancel must be a coin from the subscriber's own
+address; the wallet signs that coin like any payment, and its signature covers every output, so nobody else can cancel
+or redirect the refund. Wallets therefore never sign a covenant input, which is what most wallets get wrong for
+multi-function contracts (see finding 7 below).
+
+Tested with a real wallet (Paytaca on Android, connected over WizardConnect to the site on a desktop browser, chipnet):
+subscribe 345e1f1267c36c9a5257b6720a0c1621b04fed1f9f9c25e3226e47597513cab0, cancel
+06026251da52ade47f198ed20e18b2e1f146297f8d283d62af18fa381050ee22. Headless wallet run of the same flow
+(`scripts/e2e_wizard.mjs`): cancel 8a64de4b679a4cad4deef4e3e78efdd1c6544b90a03bb6561560ccbc115ad14b.
+
 ## Web app (`web/`)
 Vite + TypeScript, no framework. Pay-link generator, WizardConnect connect (QR or open link), subscribe, order status,
 collect, cancel, merchant view. `web/worker.js` serves the app and a small order registry; `scripts/relayer.mjs` claims
@@ -49,8 +60,9 @@ due periods (it holds no keys).
 ## SolidCash findings
 `notes/SOLIDCASH_FINDINGS.md` lists what we hit while building, with repros. The most important: WalletConnect /
 WizardConnect wallets could not sign functions of multi-function contracts, because signatures inside an `OP_INVOKE`d
-function cover the function body while `getWcContractInfo()` passed the full redeem script. The app works around it
-(`fixCoveredBytecode` in `web/src/chain.ts`); a fix is prepared for upstream.
+function cover the function body while `getWcContractInfo()` passed the full redeem script. Wallets add to it: Paytaca
+always covers the full redeem script taken from the unlocking bytecode. We first worked around it in the request
+(`scripts/archive/`), then removed the need entirely with the cancel design above; a fix is prepared for upstream.
 
 ## License
 MIT

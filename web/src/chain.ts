@@ -1,11 +1,11 @@
 // Chain logic for Standing Order: plans, the covenant, and the fund / claim / cancel transactions.
 import {
-  binToHex, hexToBin, hash160, stringify, cashAddressToLockingBytecode, decodeCashAddress, encodeCashAddress,
+  binToHex, hexToBin, hash160, stringify, encodeTransaction, cashAddressToLockingBytecode, decodeCashAddress, encodeCashAddress,
 } from '@bitauth/libauth';
 import { Contract, TransactionBuilder } from '@solidcash/solidcash';
 import { ElectrumNetworkProvider } from '@solidcash/solidcash/network/electrum';
 import {
-  placeholderP2PKHUnlocker, placeholderPublicKey, placeholderSignature,
+  placeholderP2PKHUnlocker,
 } from '@solidcash/solidcash/walletconnect';
 import artifact from './standing_order.json';
 import tokenArtifact from './standing_order_token.json';
@@ -101,18 +101,9 @@ export function formatAmount(plan: Plan, n: bigint): string {
 }
 
 // ---- WizardConnect wire helpers (see /data/blaze/STATUS.md for why) --------
-export const toWire = (o: unknown) => JSON.parse(stringify(o));
-export function fixCoveredBytecode(wc: any): any {
-  // SolidCash: a signature inside an OP_INVOKE'd function covers the FUNCTION BODY; wallets use contract.redeemScript.
-  wc.sourceOutputs.forEach((so: any, i: number) => {
-    if (!so.contract) return;
-    const unl = binToHex(wc.transaction.inputs[i].unlockingBytecode);
-    const sel = unl.startsWith('04') ? unl.slice(2, 10) : null;
-    const bodies = (artifact as any).functionBodies as Record<string, string> | undefined;
-    if (sel && bodies?.[sel]) so.contract.redeemScript = hexToBin(bodies[sel]);
-  });
-  return wc;
-}
+// Wire format: the unsigned transaction as hex (every wallet decodes that; Paytaca does not read the object form),
+// the rest as libauth extended JSON.
+export const toWire = (wc: any) => JSON.parse(stringify({ ...wc, transaction: binToHex(encodeTransaction(wc.transaction)) }));
 
 // ---- transactions ----------------------------------------------------------
 export async function buildFund(plan: Plan, subscriberAddr: string, subscriberHash: Uint8Array, orderId: Uint8Array) {
@@ -169,16 +160,25 @@ export async function buildCancel(plan: Plan, subscriberAddr: string, subscriber
   const contract = orderContract(plan, subscriberHash, orderId);
   const utxos = await contract.getUtxos();
   if (!utxos.length) throw new Error('Nothing left in this order.');
-  let b = new TransactionBuilder({ provider: provider(plan.net) });
+  const net = provider(plan.net);
+  // The subscriber authorizes a cancel by spending one of their own plain BCH coins as the LAST input. The wallet
+  // signs that coin like any payment, so every BCH wallet can cancel; the covenant inputs need no signature.
+  const own = (await net.getUtxos(subscriberAddr)).filter((u: any) => !u.token)
+    .sort((a: any, b: any) => (a.satoshis < b.satoshis ? -1 : a.satoshis > b.satoshis ? 1 : 0));
+  if (!own.length) throw new Error(`To cancel, your wallet needs a little plain BCH at ${subscriberAddr}; it proves the cancel is yours and comes back in the same transaction.`);
+  const key = own[own.length > 1 && own[0].satoshis < 1000n ? 1 : 0];
+  let b = new TransactionBuilder({ provider: net });
   let total = 0n;
-  for (const u of utxos) { b = b.addInput(u, contract.unlock.cancel(placeholderPublicKey(), placeholderSignature())); total += u.satoshis; }
-  const back = total - 300n - 200n * BigInt(utxos.length);
+  for (const u of utxos) { b = b.addInput(u, contract.unlock.cancel()); total += u.satoshis; }
+  b = b.addInput(key, placeholderP2PKHUnlocker(subscriberAddr));
+  total += key.satoshis;
+  const back = total - 500n - 200n * BigInt(utxos.length);
   if (plan.token) {
     const tokens = utxos.reduce((a: bigint, u: any) => a + (u.token?.amount ?? 0n), 0n);
     b = b.addOutput({ to: tokenAddressOfHash(subscriberHash, plan.net), amount: back, token: { category: plan.token.category, amount: tokens } });
   } else b = b.addOutput({ to: subscriberAddr, amount: back });
-  const wc = fixCoveredBytecode(b.generateWcTransactionObject({ broadcast: false, userPrompt: 'Cancel the standing order and take back what is left' }));
-  return { wc: toWire(wc), inputPaths: utxos.map((_: any, i: number) => [i, 'receive', 0]) as [number, string, number][] };
+  const wc = b.generateWcTransactionObject({ broadcast: false, userPrompt: 'Cancel the standing order and take back what is left' });
+  return { wc: toWire(wc), inputPaths: [[utxos.length, 'receive', 0]] as [number, string, number][] };
 }
 
 // Anyone may claim a due period: no signature, so the page itself can broadcast it.

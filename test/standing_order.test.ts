@@ -88,19 +88,45 @@ describe('StandingOrder.claim', () => {
 });
 
 describe('StandingOrder.cancel', () => {
+  // The subscriber authorizes a cancel by spending one of their own coins as the last input.
+  const coin = (p: Uint8Array, provider: MockNetworkProvider) => {
+    const u = { ...randomUtxo(), satoshis: 5_000n };
+    provider.addUtxo(addr(p), u);
+    return u;
+  };
+
   it('lets the subscriber take everything back at any time', async () => {
     const { provider, contract, utxo } = setup(100_000n);
     const tx = new TransactionBuilder({ provider })
-      .addInput(utxo, contract.unlock.cancel(pub(subscriberPriv), new SignatureTemplate(subscriberPriv)))
-      .addOutput({ to: addr(subscriberPriv), amount: 100_000n - MAXFEE });
+      .addInput(utxo, contract.unlock.cancel())
+      .addInput(coin(subscriberPriv, provider), new SignatureTemplate(subscriberPriv).unlockP2PKH())
+      .addOutput({ to: addr(subscriberPriv), amount: 100_000n });
     await expect(tx).not.toFailRequire();
   });
 
-  it('refuses a cancel signed by anyone else', async () => {
+  it('refuses a cancel authorized by anyone else', async () => {
     const { provider, contract, utxo } = setup(100_000n);
     const tx = new TransactionBuilder({ provider })
-      .addInput(utxo, contract.unlock.cancel(pub(strangerPriv), new SignatureTemplate(strangerPriv)))
-      .addOutput({ to: addr(strangerPriv), amount: 100_000n - MAXFEE });
+      .addInput(utxo, contract.unlock.cancel())
+      .addInput(coin(strangerPriv, provider), new SignatureTemplate(strangerPriv).unlockP2PKH())
+      .addOutput({ to: addr(strangerPriv), amount: 100_000n });
+    await expect(tx).toFailRequire();
+  });
+
+  it('refuses a cancel with no subscriber coin', async () => {
+    const { provider, contract, utxo } = setup(100_000n);
+    const tx = new TransactionBuilder({ provider })
+      .addInput(utxo, contract.unlock.cancel())
+      .addOutput({ to: addr(strangerPriv), amount: 100_000n });
+    await expect(tx).toFailRequire();
+  });
+
+  it('refuses a cancel where the subscriber coin is not the last input', async () => {
+    const { provider, contract, utxo } = setup(100_000n);
+    const tx = new TransactionBuilder({ provider })
+      .addInput(coin(subscriberPriv, provider), new SignatureTemplate(subscriberPriv).unlockP2PKH())
+      .addInput(utxo, contract.unlock.cancel())
+      .addOutput({ to: addr(strangerPriv), amount: 100_000n });
     await expect(tx).toFailRequire();
   });
 });

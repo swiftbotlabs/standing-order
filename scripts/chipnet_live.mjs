@@ -49,9 +49,13 @@ if (cmd === "status") {
 } else if (cmd === "cancel") {
   const u = cUtxos[0];
   if (!u) throw new Error("no contract utxo");
+  // Authorization: a coin from the subscriber's own address, spent as the last input.
+  const own = (await provider.getUtxos(addr(sub.pub))).filter((x) => !x.token)[0];
+  if (!own) throw new Error("subscriber has no plain BCH coin to authorize the cancel");
   const r = await new TransactionBuilder({ provider })
-    .addInput(u, contract.unlock.cancel(sub.pub, new SignatureTemplate(sub.priv)))
-    .addOutput({ to: addr(sub.pub), amount: u.satoshis - MAXFEE })
+    .addInput(u, contract.unlock.cancel())
+    .addInput(own, new SignatureTemplate(sub.priv).unlockP2PKH())
+    .addOutput({ to: addr(sub.pub), amount: u.satoshis + own.satoshis - MAXFEE })
     .send();
   log("CANCELLED", r.txid);
 }

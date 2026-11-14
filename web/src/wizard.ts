@@ -2,7 +2,7 @@
 // manager first; the relay status callback feeds mgr.updateConnection(); never stringify the status object.
 import { initiateDappRelay } from '@wizardconnect/core';
 import { DappConnectionManager } from '@wizardconnect/dapp';
-import { hash160 } from '@bitauth/libauth';
+import { hash160, decodeHdPublicKey, deriveHdPublicNodeChild } from '@bitauth/libauth';
 import type { Net } from './chain';
 import { addressOfHash } from './chain';
 
@@ -28,8 +28,20 @@ export class WizardSession {
     mgr.updateConnection(relay.client, { status: 'connecting' } as any);
     mgr.attachRelay(relay);
     mgr.on('walletready', () => {
-      const pubkey = mgr.getPubkey(0, 0n);
-      if (!pubkey) { onStatus('wallet sent no receive key'); return; }
+      let pubkey = mgr.getPubkey(0, 0n);
+      if (!pubkey) {
+        // Some wallets name their paths differently: find the receive path ourselves and derive index 0.
+        const paths = (mgr.getSessionPaths?.() || []) as any[];
+        const rx = paths.find((p) => /receive|^0$|\/0$/i.test(String(p?.name ?? ''))) || paths[0];
+        if (rx?.xpub) {
+          const d: any = decodeHdPublicKey(rx.xpub);
+          if (typeof d !== 'string') {
+            const child: any = deriveHdPublicNodeChild(d.node, 0);
+            if (typeof child !== 'string') pubkey = child.publicKey;
+          }
+        }
+        if (!pubkey) { onStatus(`wallet sent no usable key (paths: ${paths.map((p) => String(p?.name)).join(', ') || 'none'})`); return; }
+      }
       const hash = hash160(pubkey);
       this.wallet = { name: mgr.walletName || 'Wallet', pubkey, hash, address: addressOfHash(hash, net) };
       onReady(this.wallet);

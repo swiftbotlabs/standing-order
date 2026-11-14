@@ -36,3 +36,12 @@
    declare @noble/curves in its dependencies. It works only if a 1.x copy happens to be hoisted. Next to any package that
    brings @noble/curves 2.x (e.g. nostr-tools via @wizardconnect/core) a Vite build fails: "Missing \"./secp256k1\" specifier
    in \"@noble/curves\" package". Fix: declare "@noble/curves": "^1.9" (or move to the 2.x `secp256k1.js` path).
+
+### 7, follow-up (15 Nov): what a real wallet does
+Paytaca (Android, WizardConnect) ignores `contract.redeemScript` when the unlocking bytecode is present: it takes the last
+push of the unlocking bytecode (the full redeem script) as covered bytecode and requires its hash to match the P2SH32
+locking bytecode. So no request shape lets it sign inside an `OP_INVOKE`d function; the result is NULLFAIL on broadcast
+("Signature must be zero for failed CHECK(MULTI)SIG operation"). Until wallets and the SDK agree on the covered bytecode
+for dispatched functions, the robust pattern is to keep signatures out of the contract: authorize with a sibling input from
+the signer's own P2PKH address (our `cancel()`), which every wallet signs correctly.
+Also: Paytaca decodes `transaction` only as a hex string; the object form fails with "Error reading Uint32LE".

@@ -1,24 +1,13 @@
 // End-to-end test on CHIPNET: dapp (this script) <-> WizardConnect relay <-> headless wallet (child process).
 // 1) subscribe: fund a Standing Order from the wallet's receive/0 address, signed by the wallet over WizardConnect
-// 2) cancel: the contract's cancel(pk, sig) with placeholders, filled by the wallet over WizardConnect
+// 2) cancel: the covenant's cancel() authorized by a wallet-signed coin from the subscriber's address
 // Test coins only. usage: node scripts/e2e_wizard.mjs
 import fs from "node:fs";
 import { spawn } from "node:child_process";
-import { deriveHdPrivateNodeFromSeed, deriveHdPath, deriveHdPathRelative, deriveHdPublicNode, hash160, encodeCashAddress, binToHex, hexToBin, stringify } from "@bitauth/libauth";
+import { deriveHdPrivateNodeFromSeed, deriveHdPath, deriveHdPathRelative, deriveHdPublicNode, hash160, encodeCashAddress, binToHex, hexToBin, stringify, encodeTransaction } from "@bitauth/libauth";
 // WizardConnect wire format = libauth extended JSON (<Uint8Array: 0x..>, <bigint: Xn>), see @wizardconnect/core serialize.js
-const toWire = (o) => JSON.parse(stringify(o));
-// SolidCash finding 7: for an OP_INVOKE-dispatched function, signatures cover the FUNCTION BODY, but
-// generateWcTransactionObject() passes the full redeem script, which wallets use as covered bytecode.
-// Swap in the function body (selected by the 4-byte selector at the start of the unlocking bytecode).
-function fixCoveredBytecode(wc, artifact) {
-  wc.sourceOutputs.forEach((so, i) => {
-    if (!so.contract) return;
-    const unl = binToHex(wc.transaction.inputs[i].unlockingBytecode);
-    const sel = unl.startsWith("04") ? unl.slice(2, 10) : null;
-    if (sel && artifact.functionBodies?.[sel]) so.contract.redeemScript = hexToBin(artifact.functionBodies[sel]);
-  });
-  return wc;
-}
+// The unsigned transaction goes as hex (what every wallet decodes), the rest as extended JSON (same as web/src/chain.ts).
+const toWire = (wc) => JSON.parse(stringify({ ...wc, transaction: binToHex(encodeTransaction(wc.transaction)) }));
 
 import { Contract, SignatureTemplate, TransactionBuilder } from "@solidcash/solidcash";
 import { ElectrumNetworkProvider } from "@solidcash/solidcash/network/electrum";
@@ -97,20 +86,23 @@ try {
   log("SUBSCRIBED (covenant funded via WizardConnect):", fundTxid, "contract", contract.address);
   await new Promise((r) => setTimeout(r, 5000));
 
-  // 3) cancel via the contract's cancel(pk, sig), placeholders filled by the wallet
+  // 3) cancel: the covenant input needs no signature; the wallet signs one of its own coins (the last input)
   const cu = (await contract.getUtxos())[0];
   if (!cu) throw new Error("contract utxo not visible yet");
+  const own = (await provider.getUtxos(userAddr)).filter((x) => !x.token)[0];
+  if (!own) throw new Error("wallet has no plain BCH coin to authorize the cancel");
   const cancel = new TransactionBuilder({ provider })
-    .addInput(cu, contract.unlock.cancel(placeholderPublicKey(), placeholderSignature()))
-    .addOutput({ to: userAddr, amount: cu.satoshis - 1_000n });
-  const wcCancel = fixCoveredBytecode(cancel.generateWcTransactionObject({ broadcast: false, userPrompt: "Cancel the standing order and take back the rest" }), artifact);
+    .addInput(cu, contract.unlock.cancel())
+    .addInput(own, placeholderP2PKHUnlocker(userAddr))
+    .addOutput({ to: userAddr, amount: cu.satoshis + own.satoshis - 1_000n });
+  const wcCancel = cancel.generateWcTransactionObject({ broadcast: false, userPrompt: "Cancel the standing order and take back the rest" });
   const signedCancel = await Promise.race([
-    mgr.signTransaction({ transaction: toWire(wcCancel), inputPaths: [[0, "receive", 0]] }),
+    mgr.signTransaction({ transaction: toWire(wcCancel), inputPaths: [[1, "receive", 0]] }),
     timeout(90000, "sign cancel"),
   ]);
   if (signedCancel.error) throw new Error("wallet refused cancel: " + signedCancel.error);
   const cancelTxid = await provider.sendRawTransaction(signedCancel.signedTransaction);
-  log("CANCELLED (contract spent with the wallet's signature):", cancelTxid);
+  log("CANCELLED (authorized by the wallet-signed subscriber coin):", cancelTxid);
   exit(0);
 } catch (e) {
   log("E2E FAILED:", String(e?.stack || e).slice(0, 800));

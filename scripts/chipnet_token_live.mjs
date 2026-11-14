@@ -66,9 +66,13 @@ if (cmd === "status") {
   try { const r = await b.send(); log("CLAIMED", r.txid); } catch (e) { log("CLAIM REJECTED:", String(e?.message || e).slice(0, 300)); process.exitCode = 3; }
 } else if (cmd === "cancel") {
   const u = cu[0]; if (!u) throw new Error("no contract utxo");
+  // Authorization: a coin from the subscriber's own address, spent as the last input.
+  const own = (await provider.getUtxos(enc(sub.pub, false))).filter((x) => !x.token)[0];
+  if (!own) throw new Error("subscriber has no plain BCH coin to authorize the cancel");
   const r = await new TransactionBuilder({ provider })
-    .addInput(u, contract.unlock.cancel(sub.pub, new SignatureTemplate(sub.priv)))
-    .addOutput({ to: enc(sub.pub, true), amount: u.satoshis - MAXFEE, token: { category: state.category, amount: u.token.amount } })
+    .addInput(u, contract.unlock.cancel())
+    .addInput(own, new SignatureTemplate(sub.priv).unlockP2PKH())
+    .addOutput({ to: enc(sub.pub, true), amount: u.satoshis + own.satoshis - MAXFEE, token: { category: state.category, amount: u.token.amount } })
     .send();
   log("CANCELLED", r.txid);
 }
