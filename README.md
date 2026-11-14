@@ -20,14 +20,14 @@ The period check is a relative timelock (`this.age >= period`) on the covenant's
 clock: at most one claim per period, enforced by consensus, not by our server.
 
 ## Contracts (SolidCash)
-- `contracts/standing_order.scash` (BCH): `claim()` / `cancel()`, 202 bytes with its arguments.
+- `contracts/standing_order.scash` (BCH): `claim()` / `cancel()`, 277 bytes with its arguments.
 - `contracts/standing_order_token.scash` (fungible CashTokens, e.g. PUSD): same rules in tokens; the covenant keeps a small
-  BCH pool for fees; the last claim pays the remaining tokens and BCH to the merchant, 273 bytes with its arguments.
+  BCH pool for fees; the last claim pays the remaining tokens and BCH to the merchant, 348 bytes with its arguments.
 
 ## Tests
 ```
 npm install
-npx --no-install solidhat test     # 27 mock-network tests (both contracts), all assertions awaited
+npx --no-install solidhat test     # 35 tests (both contracts); replay attacks checked by the libauth 2026 VM
 ```
 Negative tests were proven with planted controls (flipping an expectation turns the suite red).
 
@@ -43,14 +43,15 @@ Negative tests were proven with planted controls (flipping an expectation turns 
 
 ## Cancel works in any wallet
 `cancel()` has no signature inside the contract. The last input of a cancel must be a coin from the subscriber's own
-address; the wallet signs that coin like any payment, and its signature covers every output, so nobody else can cancel
-or redirect the refund. Wallets therefore never sign a covenant input, which is what most wallets get wrong for
-multi-function contracts (see finding 7 below).
+address, signed with sighash ALL or ALL|UTXOS (the contract reads the sighash byte), and the only output must pay the
+subscriber. The wallet signs that coin like any payment. Wallets therefore never sign a covenant input, which is what
+most wallets get wrong for multi-function contracts (see finding 7 below).
 
 Tested with a real wallet (Paytaca on Android, connected over WizardConnect to the site on a desktop browser, chipnet):
-subscribe 345e1f1267c36c9a5257b6720a0c1621b04fed1f9f9c25e3226e47597513cab0, cancel
-06026251da52ade47f198ed20e18b2e1f146297f8d283d62af18fa381050ee22. Headless wallet run of the same flow
-(`scripts/e2e_wizard.mjs`): cancel 8a64de4b679a4cad4deef4e3e78efdd1c6544b90a03bb6561560ccbc115ad14b.
+subscribe ac6110e15de19d48011e376a28248a03f840f96ce05841d22473ecfd6ad8c38f, cancel
+2b0f2f6cdcf2f413d100ae9a79e3bba85603df7c8a4119e7b656d7fbf9c759db. Headless wallet run of the same flow
+(`scripts/e2e_wizard.mjs`): subscribe c348ded702cea2d850a67697db8a8ba7b8ce4be3811d188d9b0ab6f39e5606e2, cancel
+a214f4811c2d49127ca2a603fbd4e08b40f187a6c3483e6f8f44aee1cf88f088.
 
 ## Web app (`web/`)
 Vite + TypeScript, no framework. Pay-link generator, WizardConnect connect (QR or open link), subscribe, order status,
@@ -77,3 +78,10 @@ A claim must spend exactly **one** input and create exactly two outputs (one on 
 one transaction could spend two UTXOs of the same covenant, satisfy both with one pair of outputs, and send the second
 UTXO elsewhere; without the output rule, a claimer could add a third output and keep up to `maxFee`. Both attacks are
 tests in `test/` (they succeed against the earlier contracts and fail now).
+
+A second review attacked the coin-authorized cancel: if `cancel()` only checked that the last input belongs to the
+subscriber, any signature the subscriber made with SINGLE, NONE or ANYONECANPAY (an open offer, a crowdfunding pledge)
+could be replayed next to the covenant to drain it. `cancel()` now requires sighash ALL or ALL|UTXOS on that input and a
+single output to the subscriber; `test/replay.test.ts` replays such signatures and checks the libauth 2026 VM rejects
+them (all of them pass against the earlier version). The app and relayer also ignore junk coins sent to a covenant
+(dust, foreign tokens, NFTs), so nobody can block a claim or a cancel that way.

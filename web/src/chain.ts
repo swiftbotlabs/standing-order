@@ -156,25 +156,40 @@ async function buildFundToken(plan: Plan, subscriberAddr: string, subscriberHash
   return { wc: toWire(wc), inputPaths: inputs.map((_: any, i: number) => [i, 'receive', 0]) as [number, string, number][], contract };
 }
 
+// Anyone can send junk (dust, foreign tokens, NFTs) to a covenant address. Only coins that match the plan count as
+// the order; the "main" coin is the one holding the most of the plan's asset.
+export function orderUtxos(plan: Plan, utxos: any[]): any[] {
+  return plan.token
+    ? utxos.filter((u) => u.token?.category === plan.token!.category && !u.token?.nft && u.token.amount > 0n)
+    : utxos.filter((u) => !u.token);
+}
+export function mainUtxo(plan: Plan, utxos: any[]): any | undefined {
+  const key = (u: any) => (plan.token ? u.token.amount : u.satoshis) as bigint;
+  return orderUtxos(plan, utxos).sort((a, b) => (key(b) > key(a) ? 1 : key(b) < key(a) ? -1 : 0))[0];
+}
+
 export async function buildCancel(plan: Plan, subscriberAddr: string, subscriberHash: Uint8Array, orderId: Uint8Array) {
   const contract = orderContract(plan, subscriberHash, orderId);
-  const utxos = await contract.getUtxos();
+  const utxos = orderUtxos(plan, await contract.getUtxos()).slice(0, 20);
   if (!utxos.length) throw new Error('Nothing left in this order.');
   const net = provider(plan.net);
   // The subscriber authorizes a cancel by spending one of their own plain BCH coins as the LAST input. The wallet
   // signs that coin like any payment, so every BCH wallet can cancel; the covenant inputs need no signature.
-  const own = (await net.getUtxos(subscriberAddr)).filter((u: any) => !u.token)
-    .sort((a: any, b: any) => (a.satoshis < b.satoshis ? -1 : a.satoshis > b.satoshis ? 1 : 0));
+  // Prefer the smallest confirmed coin of at least 1,000 sats; fall back to the largest coin.
+  const own = (await net.getUtxos(subscriberAddr)).filter((u: any) => !u.token);
   if (!own.length) throw new Error(`To cancel, your wallet needs a little plain BCH at ${subscriberAddr}; it proves the cancel is yours and comes back in the same transaction.`);
-  const key = own[own.length > 1 && own[0].satoshis < 1000n ? 1 : 0];
+  const bySats = (a: any, b: any) => (a.satoshis < b.satoshis ? -1 : a.satoshis > b.satoshis ? 1 : 0);
+  const good = own.filter((u: any) => (u.height ?? 0) > 0 && u.satoshis >= 1000n).sort(bySats);
+  const key = good[0] ?? own.sort(bySats)[own.length - 1];
   let b = new TransactionBuilder({ provider: net });
   let total = 0n;
   for (const u of utxos) { b = b.addInput(u, contract.unlock.cancel()); total += u.satoshis; }
   b = b.addInput(key, placeholderP2PKHUnlocker(subscriberAddr));
   total += key.satoshis;
-  const back = total - 500n - 200n * BigInt(utxos.length);
+  // Fee at a little over 1 sat/byte: covenant inputs are about 250 bytes (BCH) or 322 bytes (token).
+  const back = total - 400n - (plan.token ? 360n : 290n) * BigInt(utxos.length);
   if (plan.token) {
-    const tokens = utxos.reduce((a: bigint, u: any) => a + (u.token?.amount ?? 0n), 0n);
+    const tokens = utxos.reduce((a: bigint, u: any) => a + u.token.amount, 0n);
     b = b.addOutput({ to: tokenAddressOfHash(subscriberHash, plan.net), amount: back, token: { category: plan.token.category, amount: tokens } });
   } else b = b.addOutput({ to: subscriberAddr, amount: back });
   const wc = b.generateWcTransactionObject({ broadcast: false, userPrompt: 'Cancel the standing order and take back what is left' });
@@ -184,7 +199,7 @@ export async function buildCancel(plan: Plan, subscriberAddr: string, subscriber
 // Anyone may claim a due period: no signature, so the page itself can broadcast it.
 export async function claimDue(plan: Plan, subscriberHash: Uint8Array, orderId: Uint8Array): Promise<string> {
   const contract = orderContract(plan, subscriberHash, orderId);
-  const [u] = await contract.getUtxos();
+  const u = mainUtxo(plan, await contract.getUtxos());
   if (!u) throw new Error('Nothing left in this order.');
   const merchant = addressOfHash(merchantHash(plan.merchant, plan.net), plan.net);
   if (plan.token) {
@@ -222,9 +237,10 @@ export async function orderState(plan: Plan, subscriberHash: Uint8Array, orderId
     contract.getUtxos(), net.getBlockHeight(),
     (net as any).performRequest('blockchain.address.get_history', contract.address).catch(() => []),
   ]);
-  const u = utxos[0];
-  const sats = utxos.reduce((a: bigint, x: any) => a + x.satoshis, 0n);
-  const balance = plan.token ? utxos.reduce((a: bigint, x: any) => a + (x.token?.amount ?? 0n), 0n) : sats;
+  const mine = orderUtxos(plan, utxos);
+  const u = mainUtxo(plan, utxos);
+  const sats = mine.reduce((a: bigint, x: any) => a + x.satoshis, 0n);
+  const balance = plan.token ? mine.reduce((a: bigint, x: any) => a + x.token.amount, 0n) : sats;
   let utxoHeight = 0;
   if (u) {
     const h = (history as any[]).find((x) => x.tx_hash === u.txid);

@@ -54,9 +54,18 @@ contract StandingOrderToken(
         }
     }
 
-    // Only the subscriber can cancel: the LAST input must be a coin from the subscriber's own address. Their wallet
-    // signs that coin as usual (covering every output), so any BCH wallet can cancel; no signature inside the contract.
+    // Only the subscriber can cancel. The LAST input must be a coin from the subscriber's own address, and its
+    // signature must commit to the whole transaction (sighash ALL or ALL|UTXOS, never SINGLE/NONE/ANYONECANPAY), so a
+    // signature the subscriber made for anything else can never be replayed here. The refund goes only to the
+    // subscriber. Wallets sign that coin like any payment; no signature inside the contract.
     function cancel() {
+        bytes auth = tx.inputs[tx.inputs.length - 1].unlockingBytecode;
         require(tx.inputs[tx.inputs.length - 1].lockingBytecode == new LockingBytecodeP2PKH(subscriber));
+        int n = auth.length;
+        require(auth.slice(n - 34, n - 33) == 0x21);          // <sig + hashtype> <push33 pubkey>
+        bytes ht = auth.slice(n - 35, n - 34);
+        require(ht == 0x41 || ht == 0x61);                     // ALL|FORKID or ALL|UTXOS|FORKID
+        require(tx.outputs.length == 1);
+        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(subscriber));
     }
 }

@@ -40,7 +40,12 @@ export class WizardSession {
             if (typeof child !== 'string') pubkey = child.publicKey;
           }
         }
-        if (!pubkey) { onStatus(`wallet sent no usable key (paths: ${paths.map((p) => String(p?.name)).join(', ') || 'none'})`); return; }
+        if (!pubkey) {
+          // Selene first sends wallet_ready with no paths and shares its keys only after the user approves the
+          // connection in the wallet (a second wallet_ready). Keep waiting instead of failing.
+          onStatus(paths.length ? `wallet sent no usable key (paths: ${paths.map((p) => String(p?.name)).join(', ')})` : `approve the connection in ${mgr.walletName || 'your wallet'}`);
+          return;
+        }
       }
       const hash = hash160(pubkey);
       this.wallet = { name: mgr.walletName || 'Wallet', pubkey, hash, address: addressOfHash(hash, net) };

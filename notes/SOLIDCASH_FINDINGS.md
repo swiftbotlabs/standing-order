@@ -42,6 +42,8 @@ Paytaca (Android, WizardConnect) ignores `contract.redeemScript` when the unlock
 push of the unlocking bytecode (the full redeem script) as covered bytecode and requires its hash to match the P2SH32
 locking bytecode. So no request shape lets it sign inside an `OP_INVOKE`d function; the result is NULLFAIL on broadcast
 ("Signature must be zero for failed CHECK(MULTI)SIG operation"). Until wallets and the SDK agree on the covered bytecode
-for dispatched functions, the robust pattern is to keep signatures out of the contract: authorize with a sibling input from
-the signer's own P2PKH address (our `cancel()`), which every wallet signs correctly.
+for dispatched functions, one pattern is to keep signatures out of the contract: authorize with a sibling input from
+the signer's own P2PKH address (our `cancel()`), which every wallet signs correctly. It is only safe if the contract also
+reads that input's sighash byte (ALL or ALL|UTXOS only) and fixes the outputs; otherwise a SINGLE/NONE/ANYONECANPAY
+signature the signer made elsewhere can be replayed (see `test/replay.test.ts`).
 Also: Paytaca decodes `transaction` only as a hex string; the object form fails with "Error reading Uint32LE".

@@ -37,7 +37,12 @@ async function handle(o) {
   const contract = plan.token
     ? new Contract(tok, [plan.merchantHash, sub, hexToBin(plan.token.category).reverse(), plan.amount, BigInt(plan.period), DUST, MAX_FEE, oid], { provider })
     : new Contract(bch, [plan.merchantHash, sub, plan.amount, BigInt(plan.period), MAX_FEE, oid], { provider });
-  const [u] = await contract.getUtxos();
+  // Ignore junk sent to the covenant (dust, foreign tokens, NFTs): claim the coin holding the most of the plan's asset.
+  const mine = (await contract.getUtxos()).filter((x) => plan.token
+    ? x.token?.category === plan.token.category && !x.token?.nft && x.token.amount > 0n
+    : !x.token);
+  const key = (x) => (plan.token ? x.token.amount : x.satoshis);
+  const u = mine.sort((a, b) => (key(b) > key(a) ? 1 : key(b) < key(a) ? -1 : 0))[0];
   if (!u) return "empty";
   const hist = await provider.performRequest("blockchain.address.get_history", contract.address);
   const h = hist.find((x) => x.tx_hash === u.txid);

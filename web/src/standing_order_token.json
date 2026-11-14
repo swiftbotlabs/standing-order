@@ -45,14 +45,14 @@
       "name": "cancel",
       "selector": "61d66248",
       "inputs": [],
-      "sourceEffectOrder": "linear"
+      "sourceEffectOrder": "unsupported-flow"
     }
   ],
-  "bytecode": "547ab275c3519dc0ce53798800cd0376a9147b7e0288ac7e8800d1527988c0d0518ac0c6518a785579a163c4519d00d352799d00cc78587994518aa26967c4529d00d355799d00cc5679a16951cdc0c78851d154798851d35279567994518a9d51cc78577994518a587994518aa269686d6d6d6d51 a443c5e4 OP_DEFINE c38cc70376a914537a7e0288ac7e886d6d6d7551 61d66248 OP_DEFINE 765102ff008d9301218001207f77010088 OP_1 OP_DEFINE OP_DEPTH OP_1SUB OP_ROLL OP_SIZE OP_4 OP_NUMEQUALVERIFY OP_INVOKE",
-  "source": "pragma solidcash ^0.50.0;\n\n/* Standing Order (token): a recurring payment in a fungible CashToken, e.g. a BCH stablecoin.\n *\n * The contract UTXO holds the subscription balance as fungible tokens of `category` plus a small amount\n * of BCH that pays the claim fees. After each `period` blocks anyone may trigger `claim`, which pays the\n * merchant exactly `tokensPerPeriod` tokens (with `dust` satoshis to carry them) and returns the rest\n * of the tokens to this same contract. The subscriber can `cancel` at any time.\n */\ncontract StandingOrderToken(\n    bytes20 merchant,\n    bytes20 subscriber,\n    bytes32 category,\n    int tokensPerPeriod,\n    int period,\n    int dust,\n    int maxFee,\n    // Random per subscription: gives every order its own covenant address, so subscribing to the same plan\n    // twice never makes one covenant pay twice per period. Not used by the logic.\n    bytes8 orderId\n) {\n    function claim() {\n        require(this.age >= period);\n\n        // Exactly one input: a claim may only ever spend this one order UTXO.\n        require(tx.inputs.length == 1);\n\n        // Only the order's own token category is ever moved by a claim.\n        require(tx.inputs[this.activeInputIndex].tokenCategory == category);\n\n        // Output 0 pays the merchant in tokens of this category.\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(merchant));\n        require(tx.outputs[0].tokenCategory == category);\n\n        int tokensLeft = tx.inputs[this.activeInputIndex].tokenAmount;\n        int satsLeft = tx.inputs[this.activeInputIndex].value;\n\n        if (tokensLeft <= tokensPerPeriod) {\n            // Last claim: all remaining tokens go to the merchant; the order ends.\n            require(tx.outputs.length == 1);\n            require(tx.outputs[0].tokenAmount == tokensLeft);\n            // ...together with the contract's BCH (minus at most maxFee), so no one else can take it.\n            require(tx.outputs[0].value >= satsLeft - maxFee);\n        } else {\n            // Regular claim: exactly one period's tokens; the rest stays in this contract. Exactly two outputs.\n            require(tx.outputs.length == 2);\n            require(tx.outputs[0].tokenAmount == tokensPerPeriod);\n            require(tx.outputs[0].value <= dust);\n            require(tx.outputs[1].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode);\n            require(tx.outputs[1].tokenCategory == category);\n            require(tx.outputs[1].tokenAmount == tokensLeft - tokensPerPeriod);\n            // The contract keeps its BCH, minus the merchant's dust and at most maxFee.\n            require(tx.outputs[1].value >= satsLeft - dust - maxFee);\n        }\n    }\n\n    // Only the subscriber can cancel: the LAST input must be a coin from the subscriber's own address. Their wallet\n    // signs that coin as usual (covering every output), so any BCH wallet can cancel; no signature inside the contract.\n    function cancel() {\n        require(tx.inputs[tx.inputs.length - 1].lockingBytecode == new LockingBytecodeP2PKH(subscriber));\n    }\n}\n",
+  "bytecode": "547ab275c3519dc0ce53798800cd0376a9147b7e0288ac7e8800d1527988c0d0518ac0c6518a785579a163c4519d00d352799d00cc78587994518aa26967c4529d00d355799d00cc5679a16951cdc0c78851d154798851d35279567994518a9d51cc78577994518a587994518aa269686d6d6d6d51 a443c5e4 OP_DEFINE c38ccac38cc70376a91454797e0288ac7e88768277518a6e012194518a7f7578012294518a7f770121887c78012294518a7f757c012394518a7f7776014187635167760161876869c4519d00cd0376a914547a7e0288ac7e886d6d6d6d51 61d66248 OP_DEFINE 765102ff008d9301218001207f77010088 OP_1 OP_DEFINE OP_DEPTH OP_1SUB OP_ROLL OP_SIZE OP_4 OP_NUMEQUALVERIFY OP_INVOKE",
+  "source": "pragma solidcash ^0.50.0;\n\n/* Standing Order (token): a recurring payment in a fungible CashToken, e.g. a BCH stablecoin.\n *\n * The contract UTXO holds the subscription balance as fungible tokens of `category` plus a small amount\n * of BCH that pays the claim fees. After each `period` blocks anyone may trigger `claim`, which pays the\n * merchant exactly `tokensPerPeriod` tokens (with `dust` satoshis to carry them) and returns the rest\n * of the tokens to this same contract. The subscriber can `cancel` at any time.\n */\ncontract StandingOrderToken(\n    bytes20 merchant,\n    bytes20 subscriber,\n    bytes32 category,\n    int tokensPerPeriod,\n    int period,\n    int dust,\n    int maxFee,\n    // Random per subscription: gives every order its own covenant address, so subscribing to the same plan\n    // twice never makes one covenant pay twice per period. Not used by the logic.\n    bytes8 orderId\n) {\n    function claim() {\n        require(this.age >= period);\n\n        // Exactly one input: a claim may only ever spend this one order UTXO.\n        require(tx.inputs.length == 1);\n\n        // Only the order's own token category is ever moved by a claim.\n        require(tx.inputs[this.activeInputIndex].tokenCategory == category);\n\n        // Output 0 pays the merchant in tokens of this category.\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(merchant));\n        require(tx.outputs[0].tokenCategory == category);\n\n        int tokensLeft = tx.inputs[this.activeInputIndex].tokenAmount;\n        int satsLeft = tx.inputs[this.activeInputIndex].value;\n\n        if (tokensLeft <= tokensPerPeriod) {\n            // Last claim: all remaining tokens go to the merchant; the order ends.\n            require(tx.outputs.length == 1);\n            require(tx.outputs[0].tokenAmount == tokensLeft);\n            // ...together with the contract's BCH (minus at most maxFee), so no one else can take it.\n            require(tx.outputs[0].value >= satsLeft - maxFee);\n        } else {\n            // Regular claim: exactly one period's tokens; the rest stays in this contract. Exactly two outputs.\n            require(tx.outputs.length == 2);\n            require(tx.outputs[0].tokenAmount == tokensPerPeriod);\n            require(tx.outputs[0].value <= dust);\n            require(tx.outputs[1].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode);\n            require(tx.outputs[1].tokenCategory == category);\n            require(tx.outputs[1].tokenAmount == tokensLeft - tokensPerPeriod);\n            // The contract keeps its BCH, minus the merchant's dust and at most maxFee.\n            require(tx.outputs[1].value >= satsLeft - dust - maxFee);\n        }\n    }\n\n    // Only the subscriber can cancel. The LAST input must be a coin from the subscriber's own address, and its\n    // signature must commit to the whole transaction (sighash ALL or ALL|UTXOS, never SINGLE/NONE/ANYONECANPAY), so a\n    // signature the subscriber made for anything else can never be replayed here. The refund goes only to the\n    // subscriber. Wallets sign that coin like any payment; no signature inside the contract.\n    function cancel() {\n        bytes auth = tx.inputs[tx.inputs.length - 1].unlockingBytecode;\n        require(tx.inputs[tx.inputs.length - 1].lockingBytecode == new LockingBytecodeP2PKH(subscriber));\n        int n = auth.length;\n        require(auth.slice(n - 34, n - 33) == 0x21);          // <sig + hashtype> <push33 pubkey>\n        bytes ht = auth.slice(n - 35, n - 34);\n        require(ht == 0x41 || ht == 0x61);                     // ALL|FORKID or ALL|UTXOS|FORKID\n        require(tx.outputs.length == 1);\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(subscriber));\n    }\n}\n",
   "debug": {
-    "bytecode": "4c75547ab275c3519dc0ce53798800cd0376a9147b7e0288ac7e8800d1527988c0d0518ac0c6518a785579a163c4519d00d352799d00cc78587994518aa26967c4529d00d355799d00cc5679a16951cdc0c78851d154798851d35279567994518a9d51cc78577994518a587994518aa269686d6d6d6d5104a443c5e48914c38cc70376a914537a7e0288ac7e886d6d6d75510461d662488911765102ff008d9301218001207f770100885189748c7a82549d8a",
-    "sourceMap": "22:4:55:5;;;59::61;;;10:0:62:1;;;;;;;;;",
+    "bytecode": "4c75547ab275c3519dc0ce53798800cd0376a9147b7e0288ac7e8800d1527988c0d0518ac0c6518a785579a163c4519d00d352799d00cc78587994518aa26967c4529d00d355799d00cc5679a16951cdc0c78851d154798851d35279567994518a9d51cc78577994518a587994518aa269686d6d6d6d5104a443c5e4894c5ec38ccac38cc70376a91454797e0288ac7e88768277518a6e012194518a7f7578012294518a7f770121887c78012294518a7f757c012394518a7f7776014187635167760161876869c4519d00cd0376a914547a7e0288ac7e886d6d6d6d510461d662488911765102ff008d9301218001207f770100885189748c7a82549d8a",
+    "sourceMap": "22:4:55:5;;;61::70;;;10:0:71:1;;;;;;;;;",
     "logs": [],
     "requires": [],
     "functionDebug": {
@@ -125,12 +125,28 @@
       "61d66248": {
         "requires": [
           {
-            "ip": 9,
-            "line": 60
+            "ip": 12,
+            "line": 63
+          },
+          {
+            "ip": 33,
+            "line": 65
+          },
+          {
+            "ip": 59,
+            "line": 67
+          },
+          {
+            "ip": 62,
+            "line": 68
+          },
+          {
+            "ip": 71,
+            "line": 69
           }
         ],
         "logs": [],
-        "sourceMap": "60:26:60:42;:::46:1;:16::63;:67::103:0;:92::102;;:67::103:1;;;:8::105;59:4:61:5;;;;"
+        "sourceMap": "62:31:62:47;:::51:1;:21::70;63:26:63:42:0;:::46:1;:16::63;:67::103:0;:92::102;;:67::103:1;;;:8::105;64:16:64:20:0;:::27:1;;:8::28;;65:16:65:36:0;:39::41;:35:::1;;;:16::42;;:27::28:0;:31::33;:27:::1;;;:16::42;;:46::50:0;:8::52:1;66:19:66:23:0;:38::39;:42::44;:38:::1;;;:19::45;;:30::31:0;:34::36;:30:::1;;;:19::45;;67:16:67:18:0;:22::26;:16:::1;:::40:0;;::::1;:30::32:0;:36::40;:30:::1;:16;:8::42;68:16:68:33:0;:37::38;:8::40:1;69:27:69:28:0;:16::45:1;:49::85:0;:74::84;;:49::85:1;;;:8::87;61:4:70:5;;;;"
       }
     },
     "invokeDebug": {
@@ -145,7 +161,7 @@
   },
   "functionBodies": {
     "a443c5e4": "547ab275c3519dc0ce53798800cd0376a9147b7e0288ac7e8800d1527988c0d0518ac0c6518a785579a163c4519d00d352799d00cc78587994518aa26967c4529d00d355799d00cc5679a16951cdc0c78851d154798851d35279567994518a9d51cc78577994518a587994518aa269686d6d6d6d51",
-    "61d66248": "c38cc70376a914537a7e0288ac7e886d6d6d7551"
+    "61d66248": "c38ccac38cc70376a91454797e0288ac7e88768277518a6e012194518a7f7578012294518a7f770121887c78012294518a7f757c012394518a7f7776014187635167760161876869c4519d00cd0376a914547a7e0288ac7e886d6d6d6d51"
   },
   "fingerprint": "4c0e901cf04c9fe99b7a6dd97e332efbb15d635154cdde3a3cbba60b509145b3",
   "compiler": {
@@ -161,7 +177,7 @@
       "messageBus": false
     }
   },
-  "updatedAt": "2026-11-14T11:31:47.763Z",
+  "updatedAt": "2026-11-14T11:49:34.735Z",
   "invocationAnalysis": {
     "version": 1,
     "protocolVersions": [

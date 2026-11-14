@@ -183,7 +183,7 @@ function renderPay() {
       <p><b>Connect your wallet</b><br/>Scan with a WizardConnect wallet (Selene, Paytaca...) or open it on this device.</p>
       <a class="btn" id="open">Open wallet app</a> <button class="btn ghost" id="copy">Copy link</button>
       <p class="muted" id="st">Waiting for your wallet...</p></div></div>`;
-    const uri = session.start(plan.net, (s) => { const st = document.getElementById('st'); if (st && s) st.textContent = s === 'connected' ? 'Relay connected. Approve in your wallet...' : `Relay: ${s}`; },
+    const uri = session.start(plan.net, (s) => { const st = document.getElementById('st'); if (st && s) st.textContent = s === 'connected' ? 'Relay connected. Approve in your wallet...' : /^(approve|wallet)/.test(s) ? s.charAt(0).toUpperCase() + s.slice(1) + '...' : `Relay: ${s}`; },
       connected, () => connect());
     QRCode.toCanvas(document.getElementById('qr') as HTMLCanvasElement, uri, { width: 200, margin: 1 });
     (document.getElementById('open') as HTMLAnchorElement).href = uri;
@@ -199,7 +199,8 @@ async function renderOrder() {
   try { plan = decodePlan(p.get('p') || ''); sub = hexToBin(p.get('s') || ''); oid = hexToBin(p.get('o') || ''); if (sub.length !== 20 || oid.length !== 8) throw new Error('bad order'); }
   catch (x: any) { app.innerHTML = `<section class="card"><p class="err">This order link is not valid.</p></section>`; return; }
   merchantHash(plan.merchant, plan.net);
-  const tx = p.get('tx');
+  const txParam = p.get('tx') || '';
+  const tx = /^[0-9a-f]{64}$/.test(txParam) ? txParam : '';
   app.innerHTML = `<section class="card">${planCard(plan)}
     ${tx ? `<p class="ok" id="started">Order started. <a href="${explorer(plan.net, tx)}" target="_blank" rel="noopener">View transaction</a></p>` : ''}
     <div id="state" class="state">Loading order...</div>
@@ -213,7 +214,7 @@ async function renderOrder() {
         <div class="kv"><span>Periods left</span><b>${s.periodsLeft}</b></div>
         <div class="kv"><span>Next payment</span><b>${s.balance === 0n ? 'order closed' : s.utxoHeight === 0 ? 'after the funding confirms' : s.nextClaimIn === 0 ? 'due now' : `in ${s.nextClaimIn} block(s)`}</b></div>
         <div class="kv"><span>Contract</span><code>${esc(s.address)}</code></div>
-        <details><summary>History (${s.history.length})</summary>${s.history.map((h) => `<div><a href="${explorer(plan.net, h.txid)}" target="_blank" rel="noopener">${h.txid.slice(0, 16)}...</a> ${h.height > 0 ? `block ${h.height}` : 'unconfirmed'}</div>`).join('')}</details>`;
+        <details><summary>History (${s.history.length})</summary>${s.history.filter((h) => /^[0-9a-f]{64}$/.test(h.txid)).map((h) => `<div><a href="${explorer(plan.net, h.txid)}" target="_blank" rel="noopener">${h.txid.slice(0, 16)}...</a> ${h.height > 0 ? `block ${h.height}` : 'unconfirmed'}</div>`).join('')}</details>`;
       (document.getElementById('collect') as HTMLButtonElement).disabled = !(s.balance > 0n && s.utxoHeight > 0 && s.nextClaimIn === 0);
       (document.getElementById('cancel') as HTMLButtonElement).disabled = s.balance === 0n;
       const started = document.getElementById('started'); if (started) started.hidden = s.balance === 0n && s.history.length > 1;
@@ -221,7 +222,7 @@ async function renderOrder() {
   };
   document.getElementById('collect')!.addEventListener('click', async () => {
     err.hidden = true;
-    try { const t = await claimDue(plan, sub, oid); msg.innerHTML = `Payment sent to the merchant. <a href="${explorer(plan.net, t)}" target="_blank" rel="noopener">View</a>`; refresh(); }
+    try { const t = await claimDue(plan, sub, oid); msg.innerHTML = `Payment sent to the merchant. <a href="${esc(explorer(plan.net, t))}" target="_blank" rel="noopener">View</a>`; refresh(); }
     catch (x: any) { err.hidden = false; err.textContent = /rejected/.test(x.message) ? 'Not due yet: the network refuses a claim before the period has passed.' : x.message; }
   });
   document.getElementById('cancel')!.addEventListener('click', async () => {
@@ -230,7 +231,7 @@ async function renderOrder() {
     try {
       const { wc, inputPaths } = await buildCancel(plan, session.wallet.address, sub, oid);
       const t = await broadcast(plan.net, await session.sign(wc, inputPaths));
-      msg.innerHTML = `Cancelled; the rest is back in your wallet. <a href="${explorer(plan.net, t)}" target="_blank" rel="noopener">View</a>`; refresh();
+      msg.innerHTML = `Cancelled; the rest is back in your wallet. <a href="${esc(explorer(plan.net, t))}" target="_blank" rel="noopener">View</a>`; refresh();
     } catch (x: any) { err.hidden = false; err.textContent = x.message; }
   });
   refresh();

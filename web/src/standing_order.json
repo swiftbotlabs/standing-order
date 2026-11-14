@@ -37,14 +37,14 @@
       "name": "cancel",
       "selector": "61d66248",
       "inputs": [],
-      "sourceEffectOrder": "linear"
+      "sourceEffectOrder": "unsupported-flow"
     }
   ],
-  "bytecode": "537ab275c3519d00cd0376a9147b7e0288ac7e88c0c6518a76537994518a547994518a765479567993518a9f63c4519d00cc5279567994518aa26967c4529d00cc54799d51cdc0c78851cc78a269686d6d6d51 a443c5e4 OP_DEFINE c38cc70376a914537a7e0288ac7e886d6d7551 61d66248 OP_DEFINE 765102ff008d9301218001207f77010088 OP_1 OP_DEFINE OP_DEPTH OP_1SUB OP_ROLL OP_SIZE OP_4 OP_NUMEQUALVERIFY OP_INVOKE",
-  "source": "pragma solidcash ^0.50.0;\n\n/* Standing Order: a recurring payment (subscription) on Bitcoin Cash.\n *\n * The subscriber funds this contract once. After each `period` (a relative timelock on the contract\n * UTXO, in blocks) anyone may trigger `claim`, which pays the merchant exactly `amountPerPeriod` and\n * sends the rest back to this same contract, so the next claim must wait another full period.\n * The subscriber can `cancel` at any time and take back everything that is left.\n *\n * Based on the Mecenas covenant (examples/mecenas.scash), with the period check restored and the\n * final-claim rule made exact.\n */\ncontract StandingOrder(\n    bytes20 merchant,\n    bytes20 subscriber,\n    int amountPerPeriod,\n    int period,\n    int maxFee,\n    // Random per subscription: gives every order its own covenant address, so subscribing to the same plan\n    // twice never makes one covenant pay twice per period. Not used by the logic.\n    bytes8 orderId\n) {\n    // Pay one period's amount to the merchant; anyone may broadcast it (no signature needed).\n    function claim() {\n        // At most one claim per period: the UTXO must be at least `period` blocks old.\n        require(this.age >= period);\n\n        // Exactly one input: a claim may only ever spend this one order UTXO. (Without this, one transaction could\n        // spend two UTXOs of the same covenant, satisfy both with one pair of outputs, and send the rest elsewhere.)\n        require(tx.inputs.length == 1);\n\n        // Output 0 always pays the merchant.\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(merchant));\n\n        int currentValue = tx.inputs[this.activeInputIndex].value;\n        int changeValue = currentValue - amountPerPeriod - maxFee;\n\n        if (changeValue < amountPerPeriod + maxFee) {\n            // Last claim: what is left (minus at most maxFee) goes to the merchant; the order ends.\n            require(tx.outputs.length == 1);\n            require(tx.outputs[0].value >= currentValue - maxFee);\n        } else {\n            // Regular claim: exactly one period's amount, and the change stays in this contract. Exactly two outputs,\n            // so whatever is not change can only go to miners (at most maxFee), never to a third output.\n            require(tx.outputs.length == 2);\n            require(tx.outputs[0].value == amountPerPeriod);\n            require(tx.outputs[1].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode);\n            require(tx.outputs[1].value >= changeValue);\n        }\n    }\n\n    // The subscriber cancels and takes back everything that is left.\n    // Only the subscriber can cancel: the LAST input must be a coin from the subscriber's own address. Their wallet\n    // signs that coin as usual (covering every output), so any BCH wallet can cancel; no signature inside the contract.\n    function cancel() {\n        require(tx.inputs[tx.inputs.length - 1].lockingBytecode == new LockingBytecodeP2PKH(subscriber));\n    }\n}\n",
+  "bytecode": "537ab275c3519d00cd0376a9147b7e0288ac7e88c0c6518a76537994518a547994518a765479567993518a9f63c4519d00cc5279567994518aa26967c4529d00cc54799d51cdc0c78851cc78a269686d6d6d51 a443c5e4 OP_DEFINE c38ccac38cc70376a91454797e0288ac7e88768277518a6e012194518a7f7578012294518a7f770121887c78012294518a7f757c012394518a7f7776014187635167760161876869c4519d00cd0376a914547a7e0288ac7e886d6d6d51 61d66248 OP_DEFINE 765102ff008d9301218001207f77010088 OP_1 OP_DEFINE OP_DEPTH OP_1SUB OP_ROLL OP_SIZE OP_4 OP_NUMEQUALVERIFY OP_INVOKE",
+  "source": "pragma solidcash ^0.50.0;\n\n/* Standing Order: a recurring payment (subscription) on Bitcoin Cash.\n *\n * The subscriber funds this contract once. After each `period` (a relative timelock on the contract\n * UTXO, in blocks) anyone may trigger `claim`, which pays the merchant exactly `amountPerPeriod` and\n * sends the rest back to this same contract, so the next claim must wait another full period.\n * The subscriber can `cancel` at any time and take back everything that is left.\n *\n * Based on the Mecenas covenant (examples/mecenas.scash), with the period check restored and the\n * final-claim rule made exact.\n */\ncontract StandingOrder(\n    bytes20 merchant,\n    bytes20 subscriber,\n    int amountPerPeriod,\n    int period,\n    int maxFee,\n    // Random per subscription: gives every order its own covenant address, so subscribing to the same plan\n    // twice never makes one covenant pay twice per period. Not used by the logic.\n    bytes8 orderId\n) {\n    // Pay one period's amount to the merchant; anyone may broadcast it (no signature needed).\n    function claim() {\n        // At most one claim per period: the UTXO must be at least `period` blocks old.\n        require(this.age >= period);\n\n        // Exactly one input: a claim may only ever spend this one order UTXO. (Without this, one transaction could\n        // spend two UTXOs of the same covenant, satisfy both with one pair of outputs, and send the rest elsewhere.)\n        require(tx.inputs.length == 1);\n\n        // Output 0 always pays the merchant.\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(merchant));\n\n        int currentValue = tx.inputs[this.activeInputIndex].value;\n        int changeValue = currentValue - amountPerPeriod - maxFee;\n\n        if (changeValue < amountPerPeriod + maxFee) {\n            // Last claim: what is left (minus at most maxFee) goes to the merchant; the order ends.\n            require(tx.outputs.length == 1);\n            require(tx.outputs[0].value >= currentValue - maxFee);\n        } else {\n            // Regular claim: exactly one period's amount, and the change stays in this contract. Exactly two outputs,\n            // so whatever is not change can only go to miners (at most maxFee), never to a third output.\n            require(tx.outputs.length == 2);\n            require(tx.outputs[0].value == amountPerPeriod);\n            require(tx.outputs[1].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode);\n            require(tx.outputs[1].value >= changeValue);\n        }\n    }\n\n    // The subscriber cancels and takes back everything that is left.\n    // Only the subscriber can cancel. The LAST input must be a coin from the subscriber's own address, and its\n    // signature must commit to the whole transaction (sighash ALL or ALL|UTXOS, never SINGLE/NONE/ANYONECANPAY), so a\n    // signature the subscriber made for anything else can never be replayed here. The refund goes only to the\n    // subscriber. Wallets sign that coin like any payment; no signature inside the contract.\n    function cancel() {\n        bytes auth = tx.inputs[tx.inputs.length - 1].unlockingBytecode;\n        require(tx.inputs[tx.inputs.length - 1].lockingBytecode == new LockingBytecodeP2PKH(subscriber));\n        int n = auth.length;\n        require(auth.slice(n - 34, n - 33) == 0x21);          // <sig + hashtype> <push33 pubkey>\n        bytes ht = auth.slice(n - 35, n - 34);\n        require(ht == 0x41 || ht == 0x61);                     // ALL|FORKID or ALL|UTXOS|FORKID\n        require(tx.outputs.length == 1);\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(subscriber));\n    }\n}\n",
   "debug": {
-    "bytecode": "4c53537ab275c3519d00cd0376a9147b7e0288ac7e88c0c6518a76537994518a547994518a765479567993518a9f63c4519d00cc5279567994518aa26967c4529d00cc54799d51cdc0c78851cc78a269686d6d6d5104a443c5e48913c38cc70376a914537a7e0288ac7e886d6d75510461d662488911765102ff008d9301218001207f770100885189748c7a82549d8a",
-    "sourceMap": "24:4:50:5;;;55::57;;;13:0:58:1;;;;;;;;;",
+    "bytecode": "4c53537ab275c3519d00cd0376a9147b7e0288ac7e88c0c6518a76537994518a547994518a765479567993518a9f63c4519d00cc5279567994518aa26967c4529d00cc54799d51cdc0c78851cc78a269686d6d6d5104a443c5e4894c5dc38ccac38cc70376a91454797e0288ac7e88768277518a6e012194518a7f7578012294518a7f770121887c78012294518a7f757c012394518a7f7776014187635167760161876869c4519d00cd0376a914547a7e0288ac7e886d6d6d510461d662488911765102ff008d9301218001207f770100885189748c7a82549d8a",
+    "sourceMap": "24:4:50:5;;;57::66;;;13:0:67:1;;;;;;;;;",
     "logs": [],
     "requires": [],
     "functionDebug": {
@@ -93,12 +93,28 @@
       "61d66248": {
         "requires": [
           {
-            "ip": 9,
-            "line": 56
+            "ip": 12,
+            "line": 59
+          },
+          {
+            "ip": 33,
+            "line": 61
+          },
+          {
+            "ip": 59,
+            "line": 63
+          },
+          {
+            "ip": 62,
+            "line": 64
+          },
+          {
+            "ip": 71,
+            "line": 65
           }
         ],
         "logs": [],
-        "sourceMap": "56:26:56:42;:::46:1;:16::63;:67::103:0;:92::102;;:67::103:1;;;:8::105;55:4:57:5;;;"
+        "sourceMap": "58:31:58:47;:::51:1;:21::70;59:26:59:42:0;:::46:1;:16::63;:67::103:0;:92::102;;:67::103:1;;;:8::105;60:16:60:20:0;:::27:1;;:8::28;;61:16:61:36:0;:39::41;:35:::1;;;:16::42;;:27::28:0;:31::33;:27:::1;;;:16::42;;:46::50:0;:8::52:1;62:19:62:23:0;:38::39;:42::44;:38:::1;;;:19::45;;:30::31:0;:34::36;:30:::1;;;:19::45;;63:16:63:18:0;:22::26;:16:::1;:::40:0;;::::1;:30::32:0;:36::40;:30:::1;:16;:8::42;64:16:64:33:0;:37::38;:8::40:1;65:27:65:28:0;:16::45:1;:49::85:0;:74::84;;:49::85:1;;;:8::87;57:4:66:5;;;"
       }
     },
     "invokeDebug": {
@@ -113,7 +129,7 @@
   },
   "functionBodies": {
     "a443c5e4": "537ab275c3519d00cd0376a9147b7e0288ac7e88c0c6518a76537994518a547994518a765479567993518a9f63c4519d00cc5279567994518aa26967c4529d00cc54799d51cdc0c78851cc78a269686d6d6d51",
-    "61d66248": "c38cc70376a914537a7e0288ac7e886d6d7551"
+    "61d66248": "c38ccac38cc70376a91454797e0288ac7e88768277518a6e012194518a7f7578012294518a7f770121887c78012294518a7f757c012394518a7f7776014187635167760161876869c4519d00cd0376a914547a7e0288ac7e886d6d6d51"
   },
   "fingerprint": "3433fd8bea194bb9125e4e329a9eef9715d5f6a593706f6252af6b271ac56d4d",
   "compiler": {
@@ -129,7 +145,7 @@
       "messageBus": false
     }
   },
-  "updatedAt": "2026-11-14T11:31:47.725Z",
+  "updatedAt": "2026-11-14T11:49:34.675Z",
   "invocationAnalysis": {
     "version": 1,
     "protocolVersions": [
