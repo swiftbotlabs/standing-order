@@ -6,7 +6,8 @@ A subscriber funds a standing order once. The merchant can take one period's amo
 early. The subscriber can cancel any time and the rest comes straight back. No custody: the funds sit in a covenant
 that only enforces those rules. Plans can be priced in BCH or in a CashToken stablecoin such as PUSD.
 
-Built for BCH BLAZE 2026 (Mainnet track, SolidCash bounty).
+Built for BCH BLAZE 2026 (Mainnet track, SolidCash bounty). Started on 14 Nov 2026, a few hours before the 14:00 UTC
+kick-off; the tag `pre-kickoff` marks the state at kick-off.
 
 ## How it works
 
