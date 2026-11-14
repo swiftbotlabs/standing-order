@@ -123,3 +123,28 @@ describe('StandingOrderToken.cancel', () => {
     await expect(tx).toFailRequire();
   });
 });
+
+describe('StandingOrderToken attack resistance', () => {
+  it('refuses one claim spending two UTXOs of the same order', async () => {
+    const { provider, contract, utxo, cat } = setup(5_000n);
+    const second = { ...randomUtxo({ token: { category: cat, amount: 5_000n } }), satoshis: SATS };
+    provider.addUtxo(contract.address, second);
+    const tx = new TransactionBuilder({ provider })
+      .addInput(utxo, contract.unlock.claim(), { sequence: Number(PERIOD) })
+      .addInput(second, contract.unlock.claim(), { sequence: Number(PERIOD) })
+      .addOutput({ to: addr(merchantPriv), amount: DUST, token: { category: cat, amount: PER } })
+      .addOutput({ to: contract.tokenAddress, amount: SATS - DUST - MAXFEE, token: { category: cat, amount: 5_000n - PER } })
+      .addOutput({ to: addr(strangerPriv), amount: SATS - 1_000n, token: { category: cat, amount: 5_000n } });
+    await expect(tx).toFailRequire();
+  });
+
+  it('refuses a claim that adds a third output', async () => {
+    const { provider, contract, utxo, cat } = setup(5_000n);
+    const tx = new TransactionBuilder({ provider })
+      .addInput(utxo, contract.unlock.claim(), { sequence: Number(PERIOD) })
+      .addOutput({ to: addr(merchantPriv), amount: DUST, token: { category: cat, amount: PER } })
+      .addOutput({ to: contract.tokenAddress, amount: SATS - DUST - MAXFEE - 900n, token: { category: cat, amount: 5_000n - PER } })
+      .addOutput({ to: addr(strangerPriv), amount: 900n });
+    await expect(tx).toFailRequire();
+  });
+});

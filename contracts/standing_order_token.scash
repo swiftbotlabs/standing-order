@@ -22,6 +22,9 @@ contract StandingOrderToken(
     function claim() {
         require(this.age >= period);
 
+        // Exactly one input: a claim may only ever spend this one order UTXO.
+        require(tx.inputs.length == 1);
+
         // Only the order's own token category is ever moved by a claim.
         require(tx.inputs[this.activeInputIndex].tokenCategory == category);
 
@@ -34,11 +37,13 @@ contract StandingOrderToken(
 
         if (tokensLeft <= tokensPerPeriod) {
             // Last claim: all remaining tokens go to the merchant; the order ends.
+            require(tx.outputs.length == 1);
             require(tx.outputs[0].tokenAmount == tokensLeft);
             // ...together with the contract's BCH (minus at most maxFee), so no one else can take it.
             require(tx.outputs[0].value >= satsLeft - maxFee);
         } else {
-            // Regular claim: exactly one period's tokens; the rest stays in this contract.
+            // Regular claim: exactly one period's tokens; the rest stays in this contract. Exactly two outputs.
+            require(tx.outputs.length == 2);
             require(tx.outputs[0].tokenAmount == tokensPerPeriod);
             require(tx.outputs[0].value <= dust);
             require(tx.outputs[1].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode);

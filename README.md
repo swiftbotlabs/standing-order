@@ -20,14 +20,14 @@ The period check is a relative timelock (`this.age >= period`) on the covenant's
 clock: at most one claim per period, enforced by consensus, not by our server.
 
 ## Contracts (SolidCash)
-- `contracts/standing_order.scash` (BCH): `claim()` / `cancel(pk, sig)`, 129 bytes.
+- `contracts/standing_order.scash` (BCH): `claim()` / `cancel(pk, sig)`, 139 bytes.
 - `contracts/standing_order_token.scash` (fungible CashTokens, e.g. PUSD): same rules in tokens; the covenant keeps a small
-  BCH pool for fees; the last claim pays the remaining tokens and BCH to the merchant, 165 bytes.
+  BCH pool for fees; the last claim pays the remaining tokens and BCH to the merchant, 174 bytes.
 
 ## Tests
 ```
 npm install
-npx --no-install solidhat test     # 19 mock-network tests (both contracts), all assertions awaited
+npx --no-install solidhat test     # 23 mock-network tests (both contracts), all assertions awaited
 ```
 Negative tests were proven with planted controls (flipping an expectation turns the suite red).
 
@@ -59,3 +59,9 @@ MIT
 Every subscription gets a random 8-byte `orderId` constructor argument (unused by the logic). It gives each order its own
 covenant address, so subscribing twice to the same plan creates two independent orders instead of one covenant that could
 be claimed twice per period.
+
+## Hardening (found by an adversarial review, 14 Nov)
+A claim must spend exactly **one** input and create exactly two outputs (one on the last claim). Without the input rule,
+one transaction could spend two UTXOs of the same covenant, satisfy both with one pair of outputs, and send the second
+UTXO elsewhere; without the output rule, a claimer could add a third output and keep up to `maxFee`. Both attacks are
+tests in `test/` (they succeed against the earlier contracts and fail now).

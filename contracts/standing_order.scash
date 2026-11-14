@@ -25,6 +25,10 @@ contract StandingOrder(
         // At most one claim per period: the UTXO must be at least `period` blocks old.
         require(this.age >= period);
 
+        // Exactly one input: a claim may only ever spend this one order UTXO. (Without this, one transaction could
+        // spend two UTXOs of the same covenant, satisfy both with one pair of outputs, and send the rest elsewhere.)
+        require(tx.inputs.length == 1);
+
         // Output 0 always pays the merchant.
         require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(merchant));
 
@@ -33,9 +37,12 @@ contract StandingOrder(
 
         if (changeValue < amountPerPeriod + maxFee) {
             // Last claim: what is left (minus at most maxFee) goes to the merchant; the order ends.
+            require(tx.outputs.length == 1);
             require(tx.outputs[0].value >= currentValue - maxFee);
         } else {
-            // Regular claim: exactly one period's amount, and the change stays in this contract.
+            // Regular claim: exactly one period's amount, and the change stays in this contract. Exactly two outputs,
+            // so whatever is not change can only go to miners (at most maxFee), never to a third output.
+            require(tx.outputs.length == 2);
             require(tx.outputs[0].value == amountPerPeriod);
             require(tx.outputs[1].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode);
             require(tx.outputs[1].value >= changeValue);

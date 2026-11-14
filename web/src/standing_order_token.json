@@ -67,11 +67,11 @@
       }
     }
   ],
-  "bytecode": "547ab275c0ce53798800cd0376a9147b7e0288ac7e8800d1527988c0d0518ac0c6518a785579a16300d352799d00cc78587994518aa2696700d355799d00cc5679a16951cdc0c78851d154798851d35279567994518a9d51cc78577994518a587994518aa269686d6d6d6d51 a443c5e4 OP_DEFINE 5879a97b88587a587aad6d6d6d7551 ea9625c7 OP_DEFINE 765102ff008d9301218001207f77010088 OP_1 OP_DEFINE OP_DEPTH OP_1SUB OP_ROLL OP_SIZE OP_4 OP_NUMEQUALVERIFY OP_INVOKE",
-  "source": "pragma solidcash ^0.50.0;\n\n/* Standing Order (token): a recurring payment in a fungible CashToken, e.g. a BCH stablecoin.\n *\n * The contract UTXO holds the subscription balance as fungible tokens of `category` plus a small amount\n * of BCH that pays the claim fees. After each `period` blocks anyone may trigger `claim`, which pays the\n * merchant exactly `tokensPerPeriod` tokens (with `dust` satoshis to carry them) and returns the rest\n * of the tokens to this same contract. The subscriber can `cancel` at any time.\n */\ncontract StandingOrderToken(\n    bytes20 merchant,\n    bytes20 subscriber,\n    bytes32 category,\n    int tokensPerPeriod,\n    int period,\n    int dust,\n    int maxFee,\n    // Random per subscription: gives every order its own covenant address, so subscribing to the same plan\n    // twice never makes one covenant pay twice per period. Not used by the logic.\n    bytes8 orderId\n) {\n    function claim() {\n        require(this.age >= period);\n\n        // Only the order's own token category is ever moved by a claim.\n        require(tx.inputs[this.activeInputIndex].tokenCategory == category);\n\n        // Output 0 pays the merchant in tokens of this category.\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(merchant));\n        require(tx.outputs[0].tokenCategory == category);\n\n        int tokensLeft = tx.inputs[this.activeInputIndex].tokenAmount;\n        int satsLeft = tx.inputs[this.activeInputIndex].value;\n\n        if (tokensLeft <= tokensPerPeriod) {\n            // Last claim: all remaining tokens go to the merchant; the order ends.\n            require(tx.outputs[0].tokenAmount == tokensLeft);\n            // ...together with the contract's BCH (minus at most maxFee), so no one else can take it.\n            require(tx.outputs[0].value >= satsLeft - maxFee);\n        } else {\n            // Regular claim: exactly one period's tokens; the rest stays in this contract.\n            require(tx.outputs[0].tokenAmount == tokensPerPeriod);\n            require(tx.outputs[0].value <= dust);\n            require(tx.outputs[1].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode);\n            require(tx.outputs[1].tokenCategory == category);\n            require(tx.outputs[1].tokenAmount == tokensLeft - tokensPerPeriod);\n            // The contract keeps its BCH, minus the merchant's dust and at most maxFee.\n            require(tx.outputs[1].value >= satsLeft - dust - maxFee);\n        }\n    }\n\n    function cancel(pubkey pk, sig s) {\n        require(hash160(pk) == subscriber);\n        require(checkSig(s, pk));\n    }\n}\n",
+  "bytecode": "547ab275c3519dc0ce53798800cd0376a9147b7e0288ac7e8800d1527988c0d0518ac0c6518a785579a163c4519d00d352799d00cc78587994518aa26967c4529d00d355799d00cc5679a16951cdc0c78851d154798851d35279567994518a9d51cc78577994518a587994518aa269686d6d6d6d51 a443c5e4 OP_DEFINE 5879a97b88587a587aad6d6d6d7551 ea9625c7 OP_DEFINE 765102ff008d9301218001207f77010088 OP_1 OP_DEFINE OP_DEPTH OP_1SUB OP_ROLL OP_SIZE OP_4 OP_NUMEQUALVERIFY OP_INVOKE",
+  "source": "pragma solidcash ^0.50.0;\n\n/* Standing Order (token): a recurring payment in a fungible CashToken, e.g. a BCH stablecoin.\n *\n * The contract UTXO holds the subscription balance as fungible tokens of `category` plus a small amount\n * of BCH that pays the claim fees. After each `period` blocks anyone may trigger `claim`, which pays the\n * merchant exactly `tokensPerPeriod` tokens (with `dust` satoshis to carry them) and returns the rest\n * of the tokens to this same contract. The subscriber can `cancel` at any time.\n */\ncontract StandingOrderToken(\n    bytes20 merchant,\n    bytes20 subscriber,\n    bytes32 category,\n    int tokensPerPeriod,\n    int period,\n    int dust,\n    int maxFee,\n    // Random per subscription: gives every order its own covenant address, so subscribing to the same plan\n    // twice never makes one covenant pay twice per period. Not used by the logic.\n    bytes8 orderId\n) {\n    function claim() {\n        require(this.age >= period);\n\n        // Exactly one input: a claim may only ever spend this one order UTXO.\n        require(tx.inputs.length == 1);\n\n        // Only the order's own token category is ever moved by a claim.\n        require(tx.inputs[this.activeInputIndex].tokenCategory == category);\n\n        // Output 0 pays the merchant in tokens of this category.\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(merchant));\n        require(tx.outputs[0].tokenCategory == category);\n\n        int tokensLeft = tx.inputs[this.activeInputIndex].tokenAmount;\n        int satsLeft = tx.inputs[this.activeInputIndex].value;\n\n        if (tokensLeft <= tokensPerPeriod) {\n            // Last claim: all remaining tokens go to the merchant; the order ends.\n            require(tx.outputs.length == 1);\n            require(tx.outputs[0].tokenAmount == tokensLeft);\n            // ...together with the contract's BCH (minus at most maxFee), so no one else can take it.\n            require(tx.outputs[0].value >= satsLeft - maxFee);\n        } else {\n            // Regular claim: exactly one period's tokens; the rest stays in this contract. Exactly two outputs.\n            require(tx.outputs.length == 2);\n            require(tx.outputs[0].tokenAmount == tokensPerPeriod);\n            require(tx.outputs[0].value <= dust);\n            require(tx.outputs[1].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode);\n            require(tx.outputs[1].tokenCategory == category);\n            require(tx.outputs[1].tokenAmount == tokensLeft - tokensPerPeriod);\n            // The contract keeps its BCH, minus the merchant's dust and at most maxFee.\n            require(tx.outputs[1].value >= satsLeft - dust - maxFee);\n        }\n    }\n\n    function cancel(pubkey pk, sig s) {\n        require(hash160(pk) == subscriber);\n        require(checkSig(s, pk));\n    }\n}\n",
   "debug": {
-    "bytecode": "4c6c547ab275c0ce53798800cd0376a9147b7e0288ac7e8800d1527988c0d0518ac0c6518a785579a16300d352799d00cc78587994518aa2696700d355799d00cc5679a16951cdc0c78851d154798851d35279567994518a9d51cc78577994518a587994518aa269686d6d6d6d5104a443c5e4890f5879a97b88587a587aad6d6d6d755104ea9625c78911765102ff008d9301218001207f770100885189748c7a82549d8a",
-    "sourceMap": "22:4:50:5;;;52::55;;;10:0:56:1;;;;;;;;;",
+    "bytecode": "4c75547ab275c3519dc0ce53798800cd0376a9147b7e0288ac7e8800d1527988c0d0518ac0c6518a785579a163c4519d00d352799d00cc78587994518aa26967c4529d00d355799d00cc5679a16951cdc0c78851d154798851d35279567994518a9d51cc78577994518a587994518aa269686d6d6d6d5104a443c5e4890f5879a97b88587a587aad6d6d6d755104ea9625c78911765102ff008d9301218001207f770100885189748c7a82549d8a",
+    "sourceMap": "22:4:55:5;;;57::60;;;10:0:61:1;;;;;;;;;",
     "logs": [],
     "requires": [],
     "functionDebug": {
@@ -82,66 +82,78 @@
             "line": 23
           },
           {
-            "ip": 8,
+            "ip": 6,
             "line": 26
           },
           {
-            "ip": 16,
+            "ip": 11,
             "line": 29
           },
           {
-            "ip": 21,
-            "line": 30
+            "ip": 19,
+            "line": 32
           },
           {
-            "ip": 39,
-            "line": 37
+            "ip": 24,
+            "line": 33
           },
           {
-            "ip": 49,
-            "line": 39
+            "ip": 40,
+            "line": 40
+          },
+          {
+            "ip": 45,
+            "line": 41
           },
           {
             "ip": 55,
-            "line": 42
-          },
-          {
-            "ip": 61,
             "line": 43
           },
           {
-            "ip": 66,
-            "line": 44
-          },
-          {
-            "ip": 71,
-            "line": 45
-          },
-          {
-            "ip": 81,
+            "ip": 59,
             "line": 46
           },
           {
-            "ip": 96,
+            "ip": 64,
+            "line": 47
+          },
+          {
+            "ip": 70,
             "line": 48
+          },
+          {
+            "ip": 75,
+            "line": 49
+          },
+          {
+            "ip": 80,
+            "line": 50
+          },
+          {
+            "ip": 90,
+            "line": 51
+          },
+          {
+            "ip": 105,
+            "line": 53
           }
         ],
         "logs": [],
-        "sourceMap": "23:28:23:34;;:8::36:1;;26:26:26:47:0;:16::62:1;:66::74:0;;:8::76:1;29:27:29:28:0;:16::45:1;:49::83:0;:74::82;:49::83:1;;;:8::85;30:27:30:28:0;:16::43:1;:47::55:0;;:8::57:1;32:35:32:56:0;:25::69:1;:8::70;;33:33:33:54:0;:23::61:1;:8::62;;35:12:35:22:0;:26::41;;:12:::1;:43:40:9:0;37:31:37:32;:20::45:1;:49::59:0;;:12::61:1;39:31:39:32:0;:20::39:1;:43::51:0;:54::60;;:43:::1;;;:20;:12::62;40:15:49:9:0;42:31:42:32;:20::45:1;:49::64:0;;:12::66:1;43:31:43:32:0;:20::39:1;:43::47:0;;:20:::1;:12::49;44:31:44:32:0;:20::49:1;:63::84:0;:53::101:1;:12::103;45:31:45:32:0;:20::47:1;:51::59:0;;:12::61:1;46:31:46:32:0;:20::45:1;:49::59:0;;:62::77;;:49:::1;;;:12::79;48:31:48:32:0;:20::39:1;:43::51:0;:54::58;;:43:::1;;;:61::67:0;;:43:::1;;;:20;:12::69;40:15:49:9;22:4:50:5;;;;"
+        "sourceMap": "23:28:23:34;;:8::36:1;;26:16:26:32:0;:36::37;:8::39:1;29:26:29:47:0;:16::62:1;:66::74:0;;:8::76:1;32:27:32:28:0;:16::45:1;:49::83:0;:74::82;:49::83:1;;;:8::85;33:27:33:28:0;:16::43:1;:47::55:0;;:8::57:1;35:35:35:56:0;:25::69:1;:8::70;;36:33:36:54:0;:23::61:1;:8::62;;38:12:38:22:0;:26::41;;:12:::1;:43:44:9:0;40:20:40:37;:41::42;:12::44:1;41:31:41:32:0;:20::45:1;:49::59:0;;:12::61:1;43:31:43:32:0;:20::39:1;:43::51:0;:54::60;;:43:::1;;;:20;:12::62;44:15:54:9:0;46:20:46:37;:41::42;:12::44:1;47:31:47:32:0;:20::45:1;:49::64:0;;:12::66:1;48:31:48:32:0;:20::39:1;:43::47:0;;:20:::1;:12::49;49:31:49:32:0;:20::49:1;:63::84:0;:53::101:1;:12::103;50:31:50:32:0;:20::47:1;:51::59:0;;:12::61:1;51:31:51:32:0;:20::45:1;:49::59:0;;:62::77;;:49:::1;;;:12::79;53:31:53:32:0;:20::39:1;:43::51:0;:54::58;;:43:::1;;;:61::67:0;;:43:::1;;;:20;:12::69;44:15:54:9;22:4:55:5;;;;"
       },
       "ea9625c7": {
         "requires": [
           {
             "ip": 4,
-            "line": 53
+            "line": 58
           },
           {
             "ip": 9,
-            "line": 54
+            "line": 59
           }
         ],
         "logs": [],
-        "sourceMap": "53:24:53:26;;:16::27:1;:31::41:0;:8::43:1;54:25:54:26:0;;:28::30;;:8::33:1;52:4:55:5;;;;"
+        "sourceMap": "58:24:58:26;;:16::27:1;:31::41:0;:8::43:1;59:25:59:26:0;;:28::30;;:8::33:1;57:4:60:5;;;;"
       }
     },
     "invokeDebug": {
@@ -150,12 +162,12 @@
         "name": "outlined source span 1",
         "requires": [],
         "logs": [],
-        "sourceMap": "32:8:32:70:1;;;;;;;;;;;"
+        "sourceMap": "35:8:35:70:1;;;;;;;;;;;"
       }
     }
   },
   "functionBodies": {
-    "a443c5e4": "547ab275c0ce53798800cd0376a9147b7e0288ac7e8800d1527988c0d0518ac0c6518a785579a16300d352799d00cc78587994518aa2696700d355799d00cc5679a16951cdc0c78851d154798851d35279567994518a9d51cc78577994518a587994518aa269686d6d6d6d51",
+    "a443c5e4": "547ab275c3519dc0ce53798800cd0376a9147b7e0288ac7e8800d1527988c0d0518ac0c6518a785579a163c4519d00d352799d00cc78587994518aa26967c4529d00d355799d00cc5679a16951cdc0c78851d154798851d35279567994518a9d51cc78577994518a587994518aa269686d6d6d6d51",
     "ea9625c7": "5879a97b88587a587aad6d6d6d7551"
   },
   "fingerprint": "4c0e901cf04c9fe99b7a6dd97e332efbb15d635154cdde3a3cbba60b509145b3",
@@ -172,7 +184,7 @@
       "messageBus": false
     }
   },
-  "updatedAt": "2026-11-14T08:03:38.616Z",
+  "updatedAt": "2026-11-14T11:00:20.788Z",
   "invocationAnalysis": {
     "version": 1,
     "protocolVersions": [

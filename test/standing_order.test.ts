@@ -114,3 +114,28 @@ describe('StandingOrder.orderId', () => {
     expect(a.address).not.toBe(b.address);
   });
 });
+
+describe('StandingOrder attack resistance', () => {
+  it('refuses one claim spending two UTXOs of the same order', async () => {
+    const { provider, contract, utxo } = setup(100_000n);
+    const second = { ...randomUtxo(), satoshis: 100_000n };
+    provider.addUtxo(contract.address, second);
+    const tx = new TransactionBuilder({ provider })
+      .addInput(utxo, contract.unlock.claim(), { sequence: Number(PERIOD) })
+      .addInput(second, contract.unlock.claim(), { sequence: Number(PERIOD) })
+      .addOutput({ to: addr(merchantPriv), amount: AMOUNT })
+      .addOutput({ to: contract.address, amount: 100_000n - AMOUNT - MAXFEE })
+      .addOutput({ to: addr(strangerPriv), amount: 99_000n });   // the attacker takes the second UTXO
+    await expect(tx).toFailRequire();
+  });
+
+  it('refuses a claim that adds a third output to skim the fee allowance', async () => {
+    const { provider, contract, utxo } = setup(100_000n);
+    const tx = new TransactionBuilder({ provider })
+      .addInput(utxo, contract.unlock.claim(), { sequence: Number(PERIOD) })
+      .addOutput({ to: addr(merchantPriv), amount: AMOUNT })
+      .addOutput({ to: contract.address, amount: 100_000n - AMOUNT - MAXFEE })
+      .addOutput({ to: addr(strangerPriv), amount: 900n });
+    await expect(tx).toFailRequire();
+  });
+});
