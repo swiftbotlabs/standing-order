@@ -82,11 +82,13 @@ async function handle(o) {
   return `CLAIMED ${r.txid}`;
 }
 const failedOnce = new Set();
-// "non-BIP68-final" right after an order became due: the Electrum server's view (tip, coin height) ran ahead of the node that checks the
-// relative timelock. Seen on chipnet 2026-11-15 15:03 and 15:08Z; the same claim went through minutes later. Retry those orders at the end
-// of the pass with backoff and a fresh connection, inside a time budget that keeps the run well under the unit's 90 s timeout.
+// "non-BIP68-final" although the order looks due (coin confirmed, period passed by height): on chipnet the node keeps refusing a
+// 1-block relative lock for about 10 minutes after the coin confirms. Proven 2026-11-15 with a plain P2PKH control spend (sequence 1, coin in
+// block 332686): refused 31 times from 16:20 to 16:29Z, accepted at 16:30Z (tip 332695); our claims showed the same ~10 min wait (14:43->14:53,
+// 15:03->15:13Z). So it is the network, not lag of seconds: such orders are NOT errors, they wait for the next timer pass (every 5 min).
+// In-pass retries with a fresh connection stay available (SO_RETRY_DELAYS=ms,ms,...) but are off by default because they did not help.
 const NOT_FINAL = /non-BIP68-final/i;
-const RETRY_DELAYS_MS = (process.env.SO_RETRY_DELAYS || "5000,10000,20000").split(",").map(Number);
+const RETRY_DELAYS_MS = (process.env.SO_RETRY_DELAYS || "").split(",").filter(Boolean).map(Number);
 const BUDGET_MS = Number(process.env.SO_RETRY_BUDGET_MS || 45000);
 
 const t0 = Date.now();
@@ -107,7 +109,7 @@ for (const page of await pages()) {
     try { const r = await handle(o); if (r.startsWith("CLAIMED")) claimed++; line(`order ${o.id.slice(0, 8)} ${o.net}: ${r}`); }
     catch (e) {
       const m = String(e?.message || e);
-      if (NOT_FINAL.test(m)) { deferred.push(o); line(`order ${o.id?.slice(0, 8)} ${o.net}: not final yet at the node (non-BIP68-final), will retry`); }
+      if (NOT_FINAL.test(m)) { deferred.push(o); line(`order ${o.id?.slice(0, 8)} ${o.net}: due by height, not final at the node yet (non-BIP68-final); ${RETRY_DELAYS_MS.length ? "retrying" : "next pass"}`); }
       else { errors++; line(`order ${o.id?.slice(0, 8)} ERROR ${m.slice(0, 160)}`); }
     }
   }
@@ -127,6 +129,5 @@ for (let i = 0; i < RETRY_DELAYS_MS.length && deferred.length; i++) {
     }
   }
 }
-errors += deferred.length;
-line(`pass done: orders=${n} claimed=${claimed} errors=${errors} retried=${retried} not_final_left=${deferred.length} ms=${Date.now() - t0}`);
+line(`pass done: orders=${n} claimed=${claimed} errors=${errors} waiting_not_final=${deferred.length} retried=${retried} ms=${Date.now() - t0}`);
 process.exit(0);
