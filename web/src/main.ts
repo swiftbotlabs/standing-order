@@ -44,6 +44,10 @@ function renderHome() {
     </div>
     <p class="muted small">No BCH handy? <a href="${demoChip}">Try it on chipnet</a> with free test coins.</p>
   </section>
+  <section class="film" aria-label="Demo film">
+    <video controls preload="none" playsinline poster="/film/poster.jpg" src="/film/standing-order.mp4"></video>
+    <p class="muted small">Two minutes: the whole flow on chipnet with real transactions (pay link, one approval, relayer claim, pause, cancel).</p>
+  </section>
   <section class="timeline" aria-label="How a standing order works">
     <svg viewBox="0 0 720 120" role="img" aria-labelledby="tl-t"><title id="tl-t">Fund once, paid each period, cancel any time</title>
       <line x1="40" y1="60" x2="680" y2="60" class="tl-line"/>

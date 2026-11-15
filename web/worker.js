@@ -37,9 +37,35 @@ async function sha256hex(s) {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Byte ranges for the self-hosted film (/film/*): static assets answer every Range request with the whole file (200), and Safari
+// needs 206 partial responses to play or seek a video. Strict parse of a single "bytes=a-b" range; anything else -> 416.
+async function filmWithRange(request, env) {
+  const res = await env.ASSETS.fetch(request);
+  const range = request.headers.get('range');
+  if (!res.ok || !range || request.method !== 'GET') {
+    const h = new Headers(res.headers); h.set('accept-ranges', 'bytes');
+    return new Response(res.body, { status: res.status, headers: h });
+  }
+  const buf = await res.arrayBuffer();
+  const size = buf.byteLength;
+  const bad = () => new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}`, 'accept-ranges': 'bytes' } });
+  const m = /^bytes=(\d{0,15})-(\d{0,15})$/.exec(range.trim());
+  if (!m || (m[1] === '' && m[2] === '')) return bad();
+  let start, end;
+  if (m[1] === '') { start = Math.max(0, size - Number(m[2])); end = size - 1; }
+  else { start = Number(m[1]); end = m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1); }
+  if (!(start <= end) || start >= size) return bad();
+  const h = new Headers(res.headers);
+  h.set('content-range', `bytes ${start}-${end}/${size}`);
+  h.set('content-length', String(end - start + 1));
+  h.set('accept-ranges', 'bytes');
+  return new Response(buf.slice(start, end + 1), { status: 206, headers: h });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname.startsWith('/film/')) return filmWithRange(request, env);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
 
     if (url.pathname === '/api/orders' && request.method === 'POST') {

@@ -77,19 +77,56 @@ async function handle(o) {
       b = b.addOutput({ to: contract.address, amount: change });
     }
   }
+  if (process.env.SO_TEST_FAIL_ONCE === "1" && !failedOnce.has(o.id)) { failedOnce.add(o.id); throw new Error("test: the transaction was rejected by network rules. non-BIP68-final (code 64)"); }
   const r = await b.send();
   return `CLAIMED ${r.txid}`;
 }
+const failedOnce = new Set();
+// "non-BIP68-final" right after an order became due: the Electrum server's view (tip, coin height) ran ahead of the node that checks the
+// relative timelock. Seen on chipnet 2026-11-15 15:03 and 15:08Z; the same claim went through minutes later. Retry those orders at the end
+// of the pass with backoff and a fresh connection, inside a time budget that keeps the run well under the unit's 90 s timeout.
+const NOT_FINAL = /non-BIP68-final/i;
+const RETRY_DELAYS_MS = (process.env.SO_RETRY_DELAYS || "5000,10000,20000").split(",").map(Number);
+const BUDGET_MS = Number(process.env.SO_RETRY_BUDGET_MS || 45000);
 
+const t0 = Date.now();
 let cursor = null, n = 0, claimed = 0, errors = 0;
-do {
-  const page = await fetch(`${API}/api/orders/all${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`).then((r) => r.json());
+const deferred = [];
+async function pages() {
+  if (process.env.SO_ORDERS_FILE) return [{ orders: JSON.parse(fs.readFileSync(process.env.SO_ORDERS_FILE, "utf8")) }];
+  const out = [];
+  do {
+    const page = await fetch(`${API}/api/orders/all${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`).then((r) => r.json());
+    out.push(page); cursor = page.cursor;
+  } while (cursor);
+  return out;
+}
+for (const page of await pages()) {
   for (const o of page.orders || []) {
     n++;
     try { const r = await handle(o); if (r.startsWith("CLAIMED")) claimed++; line(`order ${o.id.slice(0, 8)} ${o.net}: ${r}`); }
-    catch (e) { errors++; line(`order ${o.id?.slice(0, 8)} ERROR ${String(e?.message || e).slice(0, 160)}`); }
+    catch (e) {
+      const m = String(e?.message || e);
+      if (NOT_FINAL.test(m)) { deferred.push(o); line(`order ${o.id?.slice(0, 8)} ${o.net}: not final yet at the node (non-BIP68-final), will retry`); }
+      else { errors++; line(`order ${o.id?.slice(0, 8)} ERROR ${m.slice(0, 160)}`); }
+    }
   }
-  cursor = page.cursor;
-} while (cursor);
-line(`pass done: orders=${n} claimed=${claimed} errors=${errors}`);
+}
+let retried = 0;
+for (let i = 0; i < RETRY_DELAYS_MS.length && deferred.length; i++) {
+  if (Date.now() - t0 + RETRY_DELAYS_MS[i] > BUDGET_MS) { line(`retry budget reached (${BUDGET_MS} ms); ${deferred.length} order(s) left for the next pass`); break; }
+  await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[i]));
+  for (const k of Object.keys(providers)) { try { await providers[k].disconnect?.(); } catch {} delete providers[k]; }   // fresh connection, no cached listings
+  for (const o of deferred.splice(0)) {
+    retried++;
+    try { const r = await handle(o); if (r.startsWith("CLAIMED")) claimed++; line(`order ${o.id.slice(0, 8)} ${o.net}: retry ${i + 1}: ${r}`); }
+    catch (e) {
+      const m = String(e?.message || e);
+      if (NOT_FINAL.test(m)) { deferred.push(o); line(`order ${o.id?.slice(0, 8)} ${o.net}: retry ${i + 1}: still not final`); }
+      else { errors++; line(`order ${o.id?.slice(0, 8)} ERROR on retry ${i + 1}: ${m.slice(0, 160)}`); }
+    }
+  }
+}
+errors += deferred.length;
+line(`pass done: orders=${n} claimed=${claimed} errors=${errors} retried=${retried} not_final_left=${deferred.length} ms=${Date.now() - t0}`);
 process.exit(0);

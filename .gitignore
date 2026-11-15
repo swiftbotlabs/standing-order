@@ -7,3 +7,4 @@ web/node_modules/
 web/dist/
 relayer.log
 .secrets/
+web/public/film/
