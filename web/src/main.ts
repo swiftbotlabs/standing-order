@@ -2,7 +2,7 @@ import QRCode from 'qrcode';
 import { binToHex, hexToBin } from '@bitauth/libauth';
 import {
   type Plan, type Net, encodePlan, decodePlan, validatePlan, fundingTotal, buildFund, buildCancel, claimDue,
-  orderState, broadcast, merchantHash, formatAmount, fundingTokens, PUSD, newOrderId,
+  orderState, broadcast, merchantHash, formatAmount, fundingTokens, PUSD, newOrderId, isPlus, buildPauseResume, buildTopUp,
 } from './chain';
 import { WizardSession, type WalletInfo } from './wizard';
 
@@ -16,7 +16,7 @@ const periodText = (b: number) => b === 1 ? 'every block (~10 min)' : b === 144 
 const params = () => new URLSearchParams(location.hash.split('?')[1] || '');
 
 function demoPlan(net: Net): Plan {
-  return { v: 1, net, merchant: DEMO_MERCHANT, amount: 5_000n, period: 1, periods: 3, label: 'Standing Order demo (about 1 cent a block)' };
+  return { v: 2, net, merchant: DEMO_MERCHANT, amount: 5_000n, period: 1, periods: 3, label: 'Standing Order demo (about 1 cent a block)' };
 }
 
 function render() {
@@ -102,6 +102,10 @@ function renderNew() {
         <label>Token category <input name="category" pattern="[0-9a-f]{64}" placeholder="64 hex characters" /></label>
         <label>Symbol / decimals <input name="symbol" placeholder="TOKEN,0" /></label>
       </div>
+      <div class="row" id="splitrow">
+        <label>Split each payment with (optional) <input name="splitTo" placeholder="co-creator or affiliate: bitcoincash:q..." /></label>
+        <label>Their share per period (sats) <input name="splitAmount" type="number" min="1000" step="1" placeholder="e.g. 1000" /></label>
+      </div>
       <label>Periods the subscriber prepays <input name="periods" type="number" min="1" max="120" value="12" required /></label>
       <label class="inline"><input type="checkbox" name="chipnet" /> Use chipnet (test coins)</label>
       <p class="err" id="err" hidden></p>
@@ -111,7 +115,10 @@ function renderNew() {
   </section>`;
   const f = document.getElementById('f') as HTMLFormElement;
   const cur = document.getElementById('cur') as HTMLSelectElement;
-  cur.addEventListener('change', () => { (document.getElementById('tokrow') as HTMLElement).hidden = cur.value !== 'token'; });
+  cur.addEventListener('change', () => {
+    (document.getElementById('tokrow') as HTMLElement).hidden = cur.value !== 'token';
+    (document.getElementById('splitrow') as HTMLElement).hidden = cur.value !== 'bch';   // splits: BCH plans
+  });
   f.addEventListener('submit', (e) => {
     e.preventDefault();
     const d = new FormData(f);
@@ -127,7 +134,9 @@ function renderNew() {
       }
       const raw = String(d.get('amount')).trim();
       const amount = token ? BigInt(Math.round(Number(raw) * 10 ** token.decimals)) : BigInt(Math.round(Number(raw)));
-      const plan: Plan = { v: 1, ...(token ? { token } : {}), net: d.get('chipnet') ? 'chipnet' : 'mainnet', merchant: String(d.get('merchant')).trim(),
+      const splitTo = String(d.get('splitTo') || '').trim(), splitAmount = BigInt(Math.round(Number(d.get('splitAmount') || 0)));
+      const split = !token && splitTo ? { to: splitTo, amount: splitAmount } : undefined;
+      const plan: Plan = { v: token ? 1 : 2, ...(token ? { token } : {}), ...(split ? { split } : {}), net: d.get('chipnet') ? 'chipnet' : 'mainnet', merchant: String(d.get('merchant')).trim(),
         amount, period: Number(d.get('period')), periods: Number(d.get('periods')), label: String(d.get('label')).trim() };
       validatePlan(plan);
       const link = `${location.origin}${location.pathname}#/pay?p=${encodePlan(plan)}`;
@@ -147,7 +156,7 @@ function prepayText(plan: Plan) {
 function planCard(plan: Plan) {
   return `<div class="plan"><div class="label">${esc(plan.label)}</div>
     <div class="price">${esc(formatAmount(plan, plan.amount))} <span>${periodText(plan.period)}</span></div>
-    <div class="muted">You prepay ${plan.periods} periods: ${esc(prepayText(plan))}. Pays to <code>${esc(plan.merchant)}</code>${plan.net === 'chipnet' ? ' on chipnet' : ''}.</div></div>`;
+    <div class="muted">You prepay ${plan.periods} periods: ${esc(prepayText(plan))}. Pays to <code>${esc(plan.merchant)}</code>${plan.split ? `, and ${esc(formatAmount(plan, plan.split.amount))} each period to <code>${esc(plan.split.to)}</code>` : ''}${plan.net === 'chipnet' ? ' on chipnet' : ''}.${isPlus(plan) ? ' Pause, resume or top up any time.' : ''}</div></div>`;
 }
 
 function renderPay() {
@@ -163,7 +172,7 @@ function renderPay() {
     box.innerHTML = `<p class="ok">Connected: ${esc(w.name)} · <code>${esc(w.address)}</code></p>
       <ol class="next"><li>Your wallet asks you to approve one transaction that funds the order.</li>
       <li>After each period the merchant is paid exactly ${esc(formatAmount(plan, plan.amount))}, automatically.</li>
-      <li>You can cancel from the order page at any time and get the rest back.</li></ol>
+      <li>You can ${isPlus(plan) ? 'pause, resume, top up or ' : ''}cancel from the order page at any time and get the rest back.</li></ol>
       <button class="btn primary" id="sub">Subscribe</button>`;
     document.getElementById('sub')!.addEventListener('click', async (e) => {
       const btn = e.currentTarget as HTMLButtonElement; btn.disabled = true; btn.textContent = 'Check your wallet...'; err.hidden = true;
@@ -204,7 +213,7 @@ async function renderOrder() {
   app.innerHTML = `<section class="card">${planCard(plan)}
     ${tx ? `<p class="ok" id="started">Order started. <a href="${explorer(plan.net, tx)}" target="_blank" rel="noopener">View transaction</a></p>` : ''}
     <div id="state" class="state">Loading order...</div>
-    <div class="actions"><button class="btn" id="collect">Collect due payment</button> <button class="btn ghost" id="cancel">Cancel order</button></div>
+    <div class="actions"><button class="btn" id="collect">Collect due payment</button>${isPlus(plan) ? ' <button class="btn ghost" id="pause">Pause</button> <button class="btn ghost" id="topup">Add a period</button>' : ''} <button class="btn ghost" id="cancel">Cancel order</button></div>
     <p class="err" id="err" hidden></p><p class="muted" id="msg"></p></section>`;
   const stateEl = document.getElementById('state')!, err = document.getElementById('err')!, msg = document.getElementById('msg')!;
   const refresh = async () => {
@@ -212,10 +221,13 @@ async function renderOrder() {
       const s = await orderState(plan, sub, oid);
       stateEl.innerHTML = `<div class="kv"><span>Left in the order</span><b>${esc(formatAmount(plan, s.balance))}</b></div>
         <div class="kv"><span>Periods left</span><b>${s.periodsLeft}</b></div>
-        <div class="kv"><span>Next payment</span><b>${s.balance === 0n ? 'order closed' : s.utxoHeight === 0 ? 'after the funding confirms' : s.nextClaimIn === 0 ? 'due now' : `in ${s.nextClaimIn} block(s)`}</b></div>
+        <div class="kv"><span>Next payment</span><b>${s.balance === 0n ? 'order closed' : s.paused ? 'paused: none until you resume' : s.utxoHeight === 0 ? 'after the funding confirms' : s.nextClaimIn === 0 ? 'due now' : `in ${s.nextClaimIn} block(s)`}</b></div>
         <div class="kv"><span>Contract</span><code>${esc(s.address)}</code></div>
         <details><summary>History (${s.history.length})</summary>${s.history.filter((h) => /^[0-9a-f]{64}$/.test(h.txid)).map((h) => `<div><a href="${explorer(plan.net, h.txid)}" target="_blank" rel="noopener">${h.txid.slice(0, 16)}...</a> ${h.height > 0 ? `block ${h.height}` : 'unconfirmed'}</div>`).join('')}</details>`;
-      (document.getElementById('collect') as HTMLButtonElement).disabled = !(s.balance > 0n && s.utxoHeight > 0 && s.nextClaimIn === 0);
+      (document.getElementById('collect') as HTMLButtonElement).disabled = !(s.balance > 0n && !s.paused && s.utxoHeight > 0 && s.nextClaimIn === 0);
+      const pb = document.getElementById('pause') as HTMLButtonElement | null, tb = document.getElementById('topup') as HTMLButtonElement | null;
+      if (pb) { pb.textContent = s.paused ? 'Resume' : 'Pause'; pb.dataset.kind = s.paused ? 'resume' : 'pause'; pb.disabled = s.balance === 0n; }
+      if (tb) tb.disabled = s.balance === 0n || s.paused;
       (document.getElementById('cancel') as HTMLButtonElement).disabled = s.balance === 0n;
       const started = document.getElementById('started'); if (started) started.hidden = s.balance === 0n && s.history.length > 1;
     } catch (x: any) { stateEl.textContent = `Could not load the order: ${x.message}`; }
@@ -225,6 +237,22 @@ async function renderOrder() {
     try { const t = await claimDue(plan, sub, oid); msg.innerHTML = `Payment sent to the merchant. <a href="${esc(explorer(plan.net, t))}" target="_blank" rel="noopener">View</a>`; refresh(); }
     catch (x: any) { err.hidden = false; err.textContent = /rejected/.test(x.message) ? 'Not due yet: the network refuses a claim before the period has passed.' : x.message; }
   });
+  const withWallet = async (what: string, build: (addr: string) => Promise<{ wc: any; inputPaths: any }>, done: string) => {
+    err.hidden = true;
+    if (!session.wallet) { err.hidden = false; err.textContent = `Open the pay link again and connect the subscriber wallet to ${what}.`; return; }
+    try {
+      const { wc, inputPaths } = await build(session.wallet.address);
+      const t = await broadcast(plan.net, await session.sign(wc, inputPaths));
+      msg.innerHTML = `${done} <a href="${esc(explorer(plan.net, t))}" target="_blank" rel="noopener">View</a>`; refresh();
+    } catch (x: any) { err.hidden = false; err.textContent = x.message; }
+  };
+  document.getElementById('pause')?.addEventListener('click', (e) => {
+    const kind = ((e.currentTarget as HTMLElement).dataset.kind || 'pause') as 'pause' | 'resume';
+    withWallet(kind, (a) => buildPauseResume(kind, plan, a, sub, oid),
+      kind === 'pause' ? 'Paused. No payments until you resume.' : 'Resumed. The next payment is one period from now.');
+  });
+  document.getElementById('topup')?.addEventListener('click', () =>
+    withWallet('top up', (a) => buildTopUp(plan, a, sub, oid, 1), 'Added one period to the order.'));
   document.getElementById('cancel')!.addEventListener('click', async () => {
     err.hidden = true;
     if (!session.wallet) { err.hidden = false; err.textContent = 'Open the pay link again and connect the subscriber wallet to cancel.'; return; }

@@ -8,9 +8,10 @@ import { ElectrumNetworkProvider } from "@solidcash/solidcash/network/electrum";
 
 const API = process.env.SO_API || "https://standing-order.swiftbotlab.workers.dev";
 const LOG = process.env.SO_LOG || "relayer.log";
-const MAX_FEE = 1000n, DUST = 800n;
+const MAX_FEE = 1000n, PLUS_MAX_FEE = 2000n, DUST = 800n;   // v2 claim txs carry a ~1 kB redeem script
 const bch = JSON.parse(fs.readFileSync(new URL("../artifacts/solidcash/standing_order.json", import.meta.url)));
 const tok = JSON.parse(fs.readFileSync(new URL("../artifacts/solidcash/standing_order_token.json", import.meta.url)));
+const plus = JSON.parse(fs.readFileSync(new URL("../artifacts/solidcash/standing_order_plus.json", import.meta.url)));
 const line = (s) => { const l = `${new Date().toISOString()} ${s}`; console.log(l); try { fs.appendFileSync(LOG, l + "\n"); } catch {} };
 const providers = {};
 const prov = (net) => (providers[net] ??= new ElectrumNetworkProvider(net));
@@ -21,7 +22,12 @@ function decodePlan(p) {
   const prefix = net === "mainnet" ? "bitcoincash" : "bchtest";
   const d = decodeCashAddress(o.merchant.includes(":") ? o.merchant : `${prefix}:${o.merchant}`);
   if (typeof d === "string" || d.prefix !== prefix || !d.type.startsWith("p2pkh")) throw new Error("bad merchant");
-  const plan = { net, merchantHash: d.payload, amount: BigInt(o.amount), period: Number(o.period), token: o.token };
+  const plan = { net, merchantHash: d.payload, amount: BigInt(o.amount), period: Number(o.period), token: o.token, v2: o.v === 2 && !o.token, splitHash: null, split: 0n };
+  if (plan.v2 && o.split && BigInt(o.split.amount) > 0n) {
+    const sd = decodeCashAddress(String(o.split.to).includes(":") ? String(o.split.to) : `${prefix}:${o.split.to}`);
+    if (typeof sd === "string" || sd.prefix !== prefix || !sd.type.startsWith("p2pkh")) throw new Error("bad split");
+    plan.splitHash = sd.payload; plan.split = BigInt(o.split.amount);
+  }
   if (plan.amount < 1n || !(plan.period >= 1 && plan.period <= 65535)) throw new Error("bad plan");
   if (plan.token && !/^[0-9a-f]{64}$/.test(plan.token.category)) throw new Error("bad token");
   return plan;
@@ -34,31 +40,42 @@ async function handle(o) {
   const sub = hexToBin(o.s), oid = hexToBin(o.o);
   if (sub.length !== 20 || oid.length !== 8) throw new Error("bad subscriber/order id");
   const provider = prov(plan.net);
-  const contract = plan.token
+  const contract = plan.v2
+    ? new Contract(plus, [plan.merchantHash, sub, plan.amount, BigInt(plan.period), PLUS_MAX_FEE, plan.splitHash ?? new Uint8Array(20), plan.split, oid], { provider })
+    : plan.token
     ? new Contract(tok, [plan.merchantHash, sub, hexToBin(plan.token.category).reverse(), plan.amount, BigInt(plan.period), DUST, MAX_FEE, oid], { provider })
     : new Contract(bch, [plan.merchantHash, sub, plan.amount, BigInt(plan.period), MAX_FEE, oid], { provider });
   // Ignore junk sent to the covenant (dust, foreign tokens, NFTs): claim the coin holding the most of the plan's asset.
   const mine = (await contract.getUtxos()).filter((x) => plan.token
     ? x.token?.category === plan.token.category && !x.token?.nft && x.token.amount > 0n
-    : !x.token);
+    : x.satoshis >= plan.amount + plan.split);   // by value: ignore stray dust; keep a coin someone attached a token to
   const key = (x) => (plan.token ? x.token.amount : x.satoshis);
   const u = mine.sort((a, b) => (key(b) > key(a) ? 1 : key(b) < key(a) ? -1 : 0))[0];
-  if (!u) return "empty";
+  if (!u) return plan.v2 ? "empty or paused" : "empty";
   const hist = await provider.performRequest("blockchain.address.get_history", contract.address);
   const h = hist.find((x) => x.tx_hash === u.txid);
   if (!h || h.height <= 0) return "unconfirmed";
   const tip = await provider.getBlockHeight();
   if (h.height + plan.period > tip + 1) return `not due (${h.height + plan.period - tip - 1} blocks)`;
-  let b = new TransactionBuilder({ provider }).addInput(u, contract.unlock.claim(), { sequence: plan.period });
+  let b = new TransactionBuilder({ provider, allowImplicitFungibleTokenBurn: true, allowImplicitNftBurn: true })
+    .addInput(u, contract.unlock.claim(), { sequence: plan.period });
   if (plan.token) {
     const cat = plan.token.category, left = u.token?.amount ?? 0n, m = addr(plan.merchantHash, plan.net, true);
     if (left <= plan.amount) b = b.addOutput({ to: m, amount: u.satoshis - MAX_FEE, token: { category: cat, amount: left } });
     else b = b.addOutput({ to: m, amount: DUST, token: { category: cat, amount: plan.amount } })
       .addOutput({ to: contract.tokenAddress, amount: u.satoshis - DUST - MAX_FEE, token: { category: cat, amount: left - plan.amount } });
   } else {
-    const m = addr(plan.merchantHash, plan.net, false), change = u.satoshis - plan.amount - MAX_FEE;
-    if (change < plan.amount + MAX_FEE) b = b.addOutput({ to: m, amount: u.satoshis - MAX_FEE });
-    else b = b.addOutput({ to: m, amount: plan.amount }).addOutput({ to: contract.address, amount: change });
+    const per = plan.amount + plan.split, fee = plan.v2 ? PLUS_MAX_FEE : MAX_FEE;
+    const m = addr(plan.merchantHash, plan.net, false), change = u.satoshis - per - fee;
+    if (change < per + fee) {
+      if (plan.split > 0n && u.satoshis - fee >= per)   // v2 last claim: the split payee still gets its share
+        b = b.addOutput({ to: m, amount: u.satoshis - fee - plan.split }).addOutput({ to: addr(plan.splitHash, plan.net, false), amount: plan.split });
+      else b = b.addOutput({ to: m, amount: u.satoshis - fee });
+    } else {
+      b = b.addOutput({ to: m, amount: plan.amount });
+      if (plan.split > 0n) b = b.addOutput({ to: addr(plan.splitHash, plan.net, false), amount: plan.split });
+      b = b.addOutput({ to: contract.address, amount: change });
+    }
   }
   const r = await b.send();
   return `CLAIMED ${r.txid}`;

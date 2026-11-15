@@ -1,0 +1,550 @@
+{
+  "contractName": "StandingOrderPlus",
+  "constructorInputs": [
+    {
+      "name": "merchant",
+      "type": "bytes20"
+    },
+    {
+      "name": "subscriber",
+      "type": "bytes20"
+    },
+    {
+      "name": "amountPerPeriod",
+      "type": "int256"
+    },
+    {
+      "name": "period",
+      "type": "int256"
+    },
+    {
+      "name": "maxFee",
+      "type": "int256"
+    },
+    {
+      "name": "splitPayee",
+      "type": "bytes20"
+    },
+    {
+      "name": "splitAmount",
+      "type": "int256"
+    },
+    {
+      "name": "orderId",
+      "type": "bytes8"
+    }
+  ],
+  "abi": [
+    {
+      "name": "claim",
+      "selector": "a443c5e4",
+      "inputs": [],
+      "sourceEffectOrder": "unsupported-flow"
+    },
+    {
+      "name": "pause",
+      "selector": "2138ec0c",
+      "inputs": [],
+      "sourceEffectOrder": "unsupported-flow"
+    },
+    {
+      "name": "topUp",
+      "selector": "a71b59cb",
+      "inputs": [],
+      "sourceEffectOrder": "linear"
+    },
+    {
+      "name": "changePlan",
+      "selector": "3f00ae89",
+      "inputs": [],
+      "sourceEffectOrder": "unsupported-flow"
+    },
+    {
+      "name": "cancel",
+      "selector": "61d66248",
+      "inputs": [],
+      "sourceEffectOrder": "linear"
+    }
+  ],
+  "bytecode": "0079ca00798277528a51795179012294528a7f755179012394528a7f77537ac70376a914557a7e0288ac7e876352795279012194528a7f755279012294528a7f77012187670068630079014187635167007901618768670068777777 OP_0 OP_DEFINE 517900a063537900a267006863547900a26700686900cd0376a914527a7e0288ac7e876900cc517a9c6951528a527900a06351cd0376a91453797e0288ac7e876951cc53799c6952528a517a7568007a777777 OP_1 OP_DEFINE 537951a263537903ffff00a1670068695379b275c3519dc0c6528a5379587993528a6e94528a577994528a6e7c597993528a9f6300cd0376a91455797e0288ac7e88597900a0635279587994528a5279a267006863c4529d51cd0376a9145a797e0288ac7e8851cc5a799d00cc5379597994528a5b7994528aa26967c4519d00cc5379597994528aa269686757795a795a7958795779518ac4788b528a9d76cdc0c78876d1008876cc5279a26975686d6d6d6d6d7551 a443c5e4 OP_DEFINE 78c38c528a008a69c3529c63c0009c6700686900c6537994528a577994528a557994528a765479597993528a577993528aa269557a577a577a567a557a518ac4785293528aa16900c701227f75527f7701207c7e01147e53797e4cdc44538a88548a88558a69c3529dc0009dc452a16900cd02aa20547a7e01877e8800d1008800cc00c602d00794518aa269c4529c6351cd0376a91453797e0288ac7e88686d51042b5fb2f5891c538a88548a88558a69c4519d00cd0376a914537a7e0288ac7e8777770461d662488911765102ff008d9301218001207f7701008851890e7f77760141876351677601618768528911c38ccac38cc70376a91453797e0288ac7e538917768277518a6e012194518a7f7578012294518a7f7701215489117c78012294518a7f757c012394518a528a5589748c7a82549d8a7e78cd02aa207baa7e01877e8876d1008876cc7ba269c4785293528a9c63768b528acd0376a91453797e0288ac7e88686d6d51 2138ec0c OP_DEFINE c0009d547a567a567a557a547a518a76cd00c78876d10088cc00c6a2777777 a71b59cb OP_DEFINE c3539c63c0009c6700686951528a008a6952528a008a6900cd76827701239c637602aa20527901227f75527f777e01877e876700686900cc00c6557a94528aa2696d6d6d51 3f00ae89 OP_DEFINE 78c38c528a008a69c4519d00cd0376a914537a7e0288ac7e886d6d6d7551 61d66248 OP_DEFINE 765102ff008d9301218001207f77010088 OP_2 OP_DEFINE OP_DEPTH OP_1SUB OP_ROLL OP_SIZE OP_4 OP_NUMEQUALVERIFY OP_INVOKE",
+  "source": "pragma solidcash ^0.50.0;\n\n/* Standing Order Plus: a subscription covenant with pause/resume, a split payout, top-ups and a plan change.\n *\n * Funded once by the subscriber. After each `period` blocks anyone may claim: the merchant gets `amountPerPeriod`\n * and, if `splitAmount` > 0, `splitPayee` gets `splitAmount` (a co-creator, an affiliate or a platform fee);\n * the rest returns to this covenant, so the next claim waits another full period.\n * Anything that moves the order coin restarts its clock (UTXO age), so every such move other than cancel PAYS the\n * period in progress first: the merchant can never be kept waiting by pausing, resuming or topping up.\n *  - pause():      subscriber only. Pays the current period, then moves the rest to this order's PausedOrder, which\n *                  no one can claim from and whose resume() can only send it back here (address computed on chain).\n *  - topUp():      anyone. Pays the current period and leaves the order with at least what it had.\n *  - changePlan(): merchant AND subscriber together move the balance to a new order (new price, period or split).\n *  - cancel():     subscriber only, everything back.\n * Authorization never puts a signature inside the contract: a sibling coin from the party's own P2PKH address,\n * signed over the whole transaction (sighash ALL or ALL|UTXOS), so every BCH wallet can sign it.\n */\ncontract StandingOrderPlus(\n    bytes20 merchant,\n    bytes20 subscriber,\n    int amountPerPeriod,\n    int period,\n    int maxFee,\n    bytes20 splitPayee,\n    int splitAmount,\n    // Random per subscription: every order gets its own covenant. Not used by the logic.\n    bytes8 orderId\n) {\n    // Redeem script of PausedOrder without its two constructor pushes (scripts/paused_template.mjs).\n    bytes constant PAUSED_TEMPLATE = 0x44538a88548a88558a69c3529dc0009dc452a16900cd02aa20547a7e01877e8800d1008800cc00c602d00794518aa269c4529c6351cd0376a91453797e0288ac7e88686d51042b5fb2f5891c538a88548a88558a69c4519d00cd0376a914537a7e0288ac7e8777770461d662488911765102ff008d9301218001207f7701008851890e7f77760141876351677601618768528911c38ccac38cc70376a91453797e0288ac7e538917768277518a6e012194518a7f7578012294518a7f7701215489117c78012294518a7f757c012394518a528a5589748c7a82549d8a;\n\n    // True when input i is a coin of `owner`'s P2PKH address, signed with sighash ALL or ALL|UTXOS.\n    function signedBy(int i, bytes20 owner) internal returns (bool) {\n        bytes auth = tx.inputs[i].unlockingBytecode;\n        int n = auth.length;\n        bytes ht = auth.slice(n - 35, n - 34);\n        return tx.inputs[i].lockingBytecode == new LockingBytecodeP2PKH(owner)\n            && auth.slice(n - 34, n - 33) == 0x21\n            && (ht == 0x41 || ht == 0x61);\n    }\n\n    // Outputs 0 (and 1 with a split) pay exactly one period. Returns the index of the next output.\n    // (Internal functions run as OP_INVOKE subroutines and see only their arguments, so the terms are passed in.)\n    function paysOnePeriod(bytes20 to, int amount, bytes20 splitTo, int split, int fee) internal returns (int) {\n        require(amount > 0 && split >= 0 && fee >= 0, \"bad terms\");\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(to), \"output 0 pays the merchant\");\n        require(tx.outputs[0].value == amount, \"exactly one period\");\n        int next = 1;\n        if (split > 0) {\n            require(tx.outputs[1].lockingBytecode == new LockingBytecodeP2PKH(splitTo), \"output 1 pays the split\");\n            require(tx.outputs[1].value == split, \"exactly one split\");\n            next = 2;\n        }\n        return next;\n    }\n\n    modifier onlySubscriber() {\n        require(signedBy(tx.inputs.length - 1, subscriber), \"subscriber coin must be the last input\");\n        _;\n    }\n\n    function claim() {\n        require(period >= 1 && period <= 65535, \"period out of range\");\n        require(this.age >= period, \"one claim per period\");\n        require(tx.inputs.length == 1, \"the order coin alone\");\n\n        int currentValue = tx.inputs[this.activeInputIndex].value;\n        int perPeriod = amountPerPeriod + splitAmount;\n        int changeValue = currentValue - perPeriod - maxFee;\n\n        if (changeValue < perPeriod + maxFee) {\n            // Last claim: the order ends. The split payee still gets its share when the rest covers it.\n            require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(merchant), \"output 0 pays the merchant\");\n            if (splitAmount > 0 && currentValue - maxFee >= perPeriod) {\n                require(tx.outputs.length == 2);\n                require(tx.outputs[1].lockingBytecode == new LockingBytecodeP2PKH(splitPayee), \"output 1 pays the split\");\n                require(tx.outputs[1].value == splitAmount, \"exactly one split\");\n                require(tx.outputs[0].value >= currentValue - maxFee - splitAmount);\n            } else {\n                require(tx.outputs.length == 1);\n                require(tx.outputs[0].value >= currentValue - maxFee);\n            }\n        } else {\n            int k = paysOnePeriod(merchant, amountPerPeriod, splitPayee, splitAmount, maxFee);\n            require(tx.outputs.length == k + 1, \"no extra outputs\");\n            require(tx.outputs[k].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode, \"change stays in the order\");\n            require(tx.outputs[k].tokenCategory == 0x, \"no token may ride on the order coin\");\n            require(tx.outputs[k].value >= changeValue);\n        }\n    }\n\n    function pause() onlySubscriber {\n        require(tx.inputs.length == 2 && this.activeInputIndex == 0, \"order coin first, subscriber coin second\");\n        int changeValue = tx.inputs[0].value - amountPerPeriod - splitAmount - maxFee;\n        require(changeValue >= amountPerPeriod + splitAmount + maxFee, \"too little left to pause\");\n        int k = paysOnePeriod(merchant, amountPerPeriod, splitPayee, splitAmount, maxFee);\n        require(tx.outputs.length <= k + 2, \"period, paused order, subscriber change\");\n        bytes32 self = bytes32(tx.inputs[0].lockingBytecode.slice(2, 34));\n        bytes pausedScript = 0x20 + self + 0x14 + subscriber + PAUSED_TEMPLATE;\n        require(tx.outputs[k].lockingBytecode == new LockingBytecodeP2SH32(hash256(pausedScript)), \"must go to this order's paused covenant\");\n        require(tx.outputs[k].tokenCategory == 0x, \"no token may ride on the order coin\");\n        require(tx.outputs[k].value >= changeValue, \"balance kept\");\n        if (tx.outputs.length == k + 2) {\n            require(tx.outputs[k + 1].lockingBytecode == new LockingBytecodeP2PKH(subscriber), \"change goes to the subscriber\");\n        }\n    }\n\n    function topUp() {\n        require(this.activeInputIndex == 0, \"order coin first\");\n        int k = paysOnePeriod(merchant, amountPerPeriod, splitPayee, splitAmount, maxFee);\n        require(tx.outputs[k].lockingBytecode == tx.inputs[0].lockingBytecode, \"stays in this order\");\n        require(tx.outputs[k].tokenCategory == 0x, \"no token may ride on the order coin\");\n        require(tx.outputs[k].value >= tx.inputs[0].value, \"after paying this period the order holds at least what it had\");\n    }\n\n    function changePlan() {\n        require(tx.inputs.length == 3 && this.activeInputIndex == 0, \"order, merchant coin, subscriber coin\");\n        require(signedBy(1, merchant), \"merchant coin second\");\n        require(signedBy(2, subscriber), \"subscriber coin last\");\n        bytes lb = tx.outputs[0].lockingBytecode;\n        require(lb.length == 35 && lb == new LockingBytecodeP2SH32(bytes32(lb.slice(2, 34))), \"new order is a P2SH32 covenant\");\n        require(tx.outputs[0].value >= tx.inputs[0].value - maxFee, \"balance kept\");\n    }\n\n    function cancel() onlySubscriber {\n        require(tx.outputs.length == 1, \"single refund output\");\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(subscriber), \"refund goes to the subscriber\");\n    }\n}\n",
+  "debug": {
+    "bytecode": "4c5c0079ca00798277528a51795179012294528a7f755179012394528a7f77537ac70376a914557a7e0288ac7e876352795279012194528a7f755279012294528a7f7701218767006863007901418763516700790161876867006877777700894c53517900a063537900a267006863547900a26700686900cd0376a914527a7e0288ac7e876900cc517a9c6951528a527900a06351cd0376a91453797e0288ac7e876951cc53799c6952528a517a7568007a77777751894cb6537951a263537903ffff00a1670068695379b275c3519dc0c6528a5379587993528a6e94528a577994528a6e7c597993528a9f6300cd0376a91455797e0288ac7e88597900a0635279587994528a5279a267006863c4529d51cd0376a9145a797e0288ac7e8851cc5a799d00cc5379597994528a5b7994528aa26967c4519d00cc5379597994528aa269686757795a795a7958795779518ac4788b528a9d76cdc0c78876d1008876cc5279a26975686d6d6d6d6d755104a443c5e4894d6b0178c38c528a008a69c3529c63c0009c6700686900c6537994528a577994528a557994528a765479597993528a577993528aa269557a577a577a567a557a518ac4785293528aa16900c701227f75527f7701207c7e01147e53797e4cdc44538a88548a88558a69c3529dc0009dc452a16900cd02aa20547a7e01877e8800d1008800cc00c602d00794518aa269c4529c6351cd0376a91453797e0288ac7e88686d51042b5fb2f5891c538a88548a88558a69c4519d00cd0376a914537a7e0288ac7e8777770461d662488911765102ff008d9301218001207f7701008851890e7f77760141876351677601618768528911c38ccac38cc70376a91453797e0288ac7e538917768277518a6e012194518a7f7578012294518a7f7701215489117c78012294518a7f757c012394518a528a5589748c7a82549d8a7e78cd02aa207baa7e01877e8876d1008876cc7ba269c4785293528a9c63768b528acd0376a91453797e0288ac7e88686d6d51042138ec0c891fc0009d547a567a567a557a547a518a76cd00c78876d10088cc00c6a277777704a71b59cb8945c3539c63c0009c6700686951528a008a6952528a008a6900cd76827701239c637602aa20527901227f75527f777e01877e876700686900cc00c6557a94528aa2696d6d6d51043f00ae89891e78c38c528a008a69c4519d00cd0376a914537a7e0288ac7e886d6d6d75510461d662488911765102ff008d9301218001207f770100885289748c7a82549d8a",
+    "sourceMap": "33:4:40:5;;;44::55;;;62::90;;;92::106;;;108::114;;;116::123;;;125::128;;;18:0:129:1;;;;;;;;;",
+    "logs": [],
+    "requires": [],
+    "functionDebug": {
+      "a443c5e4": {
+        "requires": [
+          {
+            "ip": 12,
+            "line": 63,
+            "message": "period out of range"
+          },
+          {
+            "ip": 15,
+            "line": 64,
+            "message": "one claim per period"
+          },
+          {
+            "ip": 19,
+            "line": 65,
+            "message": "the order coin alone"
+          },
+          {
+            "ip": 57,
+            "line": 73,
+            "message": "output 0 pays the merchant"
+          },
+          {
+            "ip": 79,
+            "line": 75
+          },
+          {
+            "ip": 88,
+            "line": 76,
+            "message": "output 1 pays the split"
+          },
+          {
+            "ip": 93,
+            "line": 77,
+            "message": "exactly one split"
+          },
+          {
+            "ip": 109,
+            "line": 78
+          },
+          {
+            "ip": 113,
+            "line": 80
+          },
+          {
+            "ip": 124,
+            "line": 81
+          },
+          {
+            "ip": 144,
+            "line": 85,
+            "message": "no extra outputs"
+          },
+          {
+            "ip": 149,
+            "line": 86,
+            "message": "change stays in the order"
+          },
+          {
+            "ip": 153,
+            "line": 87,
+            "message": "no token may ride on the order coin"
+          },
+          {
+            "ip": 159,
+            "line": 88
+          }
+        ],
+        "logs": [],
+        "sourceMap": "63:16:63:22;;:26::27;:16:::1;:::46:0;:31::37;;:41::46;:31:::1;:16;;;:8::71;64:28:64:34:0;;:8::60:1;;65:16:65:32:0;:36::37;:8::63:1;67:37:67:58:0;:27::65:1;:8::66;;68:24:68:39:0;;:42::53;;:24:::1;;;69:26:69:50:0;::::1;;;:53::59:0;;:26:::1;;;71:12:71:35:0;;:38::44;;:26:::1;;;:12;:46:83:9:0;73:31:73:32;:20::49:1;:53::87:0;:78::86;;:53::87:1;;;:12::119;74:16:74:27:0;;:30::31;:16:::1;:::69:0;:35::47;;:50::56;;:35:::1;;;:60::69:0;;:35:::1;:16;;;:71:79:13:0;75:24:75:41;:45::46;:16::48:1;76:35:76:36:0;:24::53:1;:57::93:0;:82::92;;:57::93:1;;;:16::122;77:35:77:36:0;:24::43:1;:47::58:0;;:16::81:1;78:35:78:36:0;:24::43:1;:47::59:0;;:62::68;;:47:::1;;;:71::82:0;;:47:::1;;;:24;:16::84;79:19:82:13:0;80:24:80:41;:45::46;:16::48:1;81:35:81:36:0;:24::43:1;:47::59:0;;:62::68;;:47:::1;;;:24;:16::70;79:19:82:13;83:15:89:9:0;84:86:84:92;;:73::84;;:61::71;;:44::59;;:34::42;;:20::93:1;;85::85:37:0;:41::42;:::46:1;;;:12::68;86:31:86:32:0;:20::49:1;:63::84:0;:53::101:1;:12::132;87:31:87:32:0;:20::47:1;:51::53:0;:12::94:1;88:31:88:32:0;:20::39:1;:43::54:0;;:20:::1;:12::56;83:15:89:9;;62:4:90:5;;;;;;"
+      },
+      "2138ec0c": {
+        "requires": [
+          {
+            "ip": 7,
+            "line": 58,
+            "message": "subscriber coin must be the last input"
+          },
+          {
+            "ip": 18,
+            "line": 93,
+            "message": "order coin first, subscriber coin second"
+          },
+          {
+            "ip": 50,
+            "line": 95,
+            "message": "too little left to pause"
+          },
+          {
+            "ip": 70,
+            "line": 97,
+            "message": "period, paused order, subscriber change"
+          },
+          {
+            "ip": 97,
+            "line": 100,
+            "message": "must go to this order's paused covenant"
+          },
+          {
+            "ip": 101,
+            "line": 101,
+            "message": "no token may ride on the order coin"
+          },
+          {
+            "ip": 106,
+            "line": 102,
+            "message": "balance kept"
+          },
+          {
+            "ip": 126,
+            "line": 104,
+            "message": "change goes to the subscriber"
+          }
+        ],
+        "logs": [],
+        "sourceMap": "58:47:58:57;:25::41;:::45:1;:16::58;;;;:8::102;93:16:93:32:0;:36::37;:16:::1;:::67:0;:41::62;:66::67;:41:::1;:16;;;:8::113;94:36:94:37:0;:26::44:1;:47::62:0;;:26:::1;;;:65::76:0;;:26:::1;;;:79::85:0;;:26:::1;;;95:16:95:27:0;:31::46;;:49::60;;:31:::1;;;:63::69:0;;:31:::1;;;:16;:8::99;96:82:96:88:0;;:69::80;;:57::67;;:40::55;;:30::38;;:16::89:1;;97::97:33:0;:37::38;:41::42;:37:::1;;;:16;:8::87;98:41:98:42:0;:31::59:1;:69::71:0;:31::72:1;;:66::67:0;:31::72:1;;99:29:99:33:0;:36::40;:29:::1;:43::47:0;:29:::1;:50::60:0;;:29:::1;30:37:30:479:0;99:29:99:78:1;100:27:100:28:0;:16::45:1;:49::97:0;:83::95;:75::96:1;:49::97;;;:8::142;101:27:101:28:0;:16::43:1;:47::49:0;:8::90:1;102:27:102:28:0;:16::35:1;:39::50:0;:16:::1;:8::68;103:12:103:29:0;:33::34;:37::38;:33:::1;;;:12;:40:105:9:0;104:31:104:32;:::36:1;;;:20::53;:57::93:0;:82::92;;:57::93:1;;;:12::128;103:40:105:9;92:4:106:5;;"
+      },
+      "a71b59cb": {
+        "requires": [
+          {
+            "ip": 2,
+            "line": 109,
+            "message": "order coin first"
+          },
+          {
+            "ip": 19,
+            "line": 111,
+            "message": "stays in this order"
+          },
+          {
+            "ip": 23,
+            "line": 112,
+            "message": "no token may ride on the order coin"
+          },
+          {
+            "ip": 28,
+            "line": 113,
+            "message": "after paying this period the order holds at least what it had"
+          }
+        ],
+        "logs": [],
+        "sourceMap": "109:16:109:37;:41::42;:8::64:1;110:82:110:88:0;;:69::80;;:57::67;;:40::55;;:30::38;;:16::89:1;;111:27:111:28:0;:16::45:1;:59::60:0;:49::77:1;:8::102;112:27:112:28:0;:16::43:1;:47::49:0;:8::90:1;113:16:113:35;:49::50:0;:39::57:1;:8::124;108:4:114:5;;"
+      },
+      "3f00ae89": {
+        "requires": [
+          {
+            "ip": 10,
+            "line": 117,
+            "message": "order, merchant coin, subscriber coin"
+          },
+          {
+            "ip": 16,
+            "line": 118,
+            "message": "merchant coin second"
+          },
+          {
+            "ip": 22,
+            "line": 119,
+            "message": "subscriber coin last"
+          },
+          {
+            "ip": 48,
+            "line": 121,
+            "message": "new order is a P2SH32 covenant"
+          },
+          {
+            "ip": 59,
+            "line": 122,
+            "message": "balance kept"
+          }
+        ],
+        "logs": [],
+        "sourceMap": "117:16:117:32;:36::37;:16:::1;:::67:0;:41::62;:66::67;:41:::1;:16;;;:8::110;118:25:118:26:0;:16::37:1;;;;:8::63;119:25:119:26:0;:16::39:1;;;;:8::65;120:30:120:31:0;:19::48:1;121:16:121:18:0;:::25:1;;:29::31:0;:16:::1;:::92:0;:35::37;:41::92;:75::77;;:87::89;:75::90:1;;:84::85:0;:75::90:1;;:41::92;;;:35;:16;;;:8::128;122:27:122:28:0;:16::35:1;:49::50:0;:39::57:1;:60::66:0;;:39:::1;;;:16;:8::84;116:4:123:5;;;"
+      },
+      "61d66248": {
+        "requires": [
+          {
+            "ip": 7,
+            "line": 58,
+            "message": "subscriber coin must be the last input"
+          },
+          {
+            "ip": 10,
+            "line": 126,
+            "message": "single refund output"
+          },
+          {
+            "ip": 19,
+            "line": 127,
+            "message": "refund goes to the subscriber"
+          }
+        ],
+        "logs": [],
+        "sourceMap": "58:47:58:57;:25::41;:::45:1;:16::58;;;;:8::102;126:16:126:33:0;:37::38;:8::64:1;127:27:127:28:0;:16::45:1;:49::85:0;:74::84;;:49::85:1;;;:8::120;125:4:128:5;;;;"
+      }
+    },
+    "invokeDebug": {
+      "0": {
+        "bytecode": "0079ca00798277528a51795179012294528a7f755179012394528a7f77537ac70376a914557a7e0288ac7e876352795279012194528a7f755279012294528a7f77012187670068630079014187635167007901618768670068777777",
+        "name": "signedBy",
+        "requires": [],
+        "logs": [],
+        "sourceMap": "34:31:34:32;;:21::51:1;35:16:35:20:0;;:::27:1;;:8::28;;36:19:36:23:0;;:38::39;;:42::44;:38:::1;;;:19::45;;:30::31:0;;:34::36;:30:::1;;;:19::45;;37:25:37:26:0;;:15::43:1;:47::78:0;:72::77;;:47::78:1;;;:15;::38:49:0;38:::19;;:34::35;;:38::40;:34:::1;;;:15::41;;:26::27:0;;:30::32;:26:::1;;;:15::41;;:45::49:0;:15:::1;37;;;::39:41:0;39:16::18;;:22::26;:16:::1;:::40:0;;::::1;:30::32:0;;:36::40;:30:::1;:16;37:15::41;;;:8::42;;"
+      },
+      "1": {
+        "bytecode": "517900a063537900a267006863547900a26700686900cd0376a914527a7e0288ac7e876900cc517a9c6951528a527900a06351cd0376a91453797e0288ac7e876951cc53799c6952528a517a7568007a777777",
+        "name": "paysOnePeriod",
+        "requires": [
+          {
+            "ip": 20,
+            "line": 45,
+            "message": "bad terms"
+          },
+          {
+            "ip": 30,
+            "line": 46,
+            "message": "output 0 pays the merchant"
+          },
+          {
+            "ip": 36,
+            "line": 47,
+            "message": "exactly one period"
+          },
+          {
+            "ip": 54,
+            "line": 50,
+            "message": "output 1 pays the split"
+          },
+          {
+            "ip": 60,
+            "line": 51,
+            "message": "exactly one split"
+          }
+        ],
+        "logs": [],
+        "sourceMap": "45:16:45:22;;:25::26;:16:::1;:::40:0;:30::35;;:39::40;:30:::1;:16;;;:::52:0;:44::47;;:51::52;:44:::1;:16;;;:8::67;46:27:46:28:0;:16::45:1;:49::77:0;:74::76;;:49::77:1;;;:16;:8::109;47:27:47:28:0;:16::35:1;:39::45:0;;:16:::1;:8::69;48:19:48:20:0;:8::21:1;;49:12:49:17:0;;:20::21;:12:::1;:23:53:9:0;50:31:50:32;:20::49:1;:53::86:0;:78::85;;:53::86:1;;;:20;:12::115;51:31:51:32:0;:20::39:1;:43::48:0;;:20:::1;:12::71;52:19:52:20:0;:12::21:1;;;;;49:23:53:9;54:15:54:19:0;;:8::20:1;;"
+      },
+      "2": {
+        "bytecode": "765102ff008d9301218001207f77010088",
+        "name": "outlined source span 2",
+        "requires": [],
+        "logs": [],
+        "sourceMap": "35:8:35:28:1;;;;;;;;;;;"
+      }
+    }
+  },
+  "functionBodies": {
+    "a443c5e4": "537951a263537903ffff00a1670068695379b275c3519dc0c6528a5379587993528a6e94528a577994528a6e7c597993528a9f6300cd0376a91455797e0288ac7e88597900a0635279587994528a5279a267006863c4529d51cd0376a9145a797e0288ac7e8851cc5a799d00cc5379597994528a5b7994528aa26967c4519d00cc5379597994528aa269686757795a795a7958795779518ac4788b528a9d76cdc0c78876d1008876cc5279a26975686d6d6d6d6d7551",
+    "2138ec0c": "78c38c528a008a69c3529c63c0009c6700686900c6537994528a577994528a557994528a765479597993528a577993528aa269557a577a577a567a557a518ac4785293528aa16900c701227f75527f7701207c7e01147e53797e4cdc44538a88548a88558a69c3529dc0009dc452a16900cd02aa20547a7e01877e8800d1008800cc00c602d00794518aa269c4529c6351cd0376a91453797e0288ac7e88686d51042b5fb2f5891c538a88548a88558a69c4519d00cd0376a914537a7e0288ac7e8777770461d662488911765102ff008d9301218001207f7701008851890e7f77760141876351677601618768528911c38ccac38cc70376a91453797e0288ac7e538917768277518a6e012194518a7f7578012294518a7f7701215489117c78012294518a7f757c012394518a528a5589748c7a82549d8a7e78cd02aa207baa7e01877e8876d1008876cc7ba269c4785293528a9c63768b528acd0376a91453797e0288ac7e88686d6d51",
+    "a71b59cb": "c0009d547a567a567a557a547a518a76cd00c78876d10088cc00c6a2777777",
+    "3f00ae89": "c3539c63c0009c6700686951528a008a6952528a008a6900cd76827701239c637602aa20527901227f75527f777e01877e876700686900cc00c6557a94528aa2696d6d6d51",
+    "61d66248": "78c38c528a008a69c4519d00cd0376a914537a7e0288ac7e886d6d6d7551"
+  },
+  "fingerprint": "e284ae30e9f4788363479a6ee1c879f568569948004f69d11e9e7ff6cf532a73",
+  "compiler": {
+    "name": "solidc",
+    "version": "0.50.0",
+    "options": {
+      "enforceFunctionParameterTypes": true,
+      "enforceLocktimeGuard": true,
+      "enforceFinalRequire": true,
+      "commitmentLimit": 128,
+      "messageBus": false
+    }
+  },
+  "updatedAt": "2026-11-15T14:33:54.690Z",
+  "invocationAnalysis": {
+    "version": 1,
+    "protocolVersions": [
+      1
+    ],
+    "functions": [
+      {
+        "id": 0,
+        "name": "signedBy",
+        "arity": 2,
+        "entryPoint": false,
+        "calls": [],
+        "closure": [
+          0
+        ],
+        "component": 0,
+        "recursive": false,
+        "reads": [],
+        "writes": [],
+        "effects": [],
+        "unknown": false,
+        "bounded": true,
+        "maximumDirectInvocations": 0
+      },
+      {
+        "id": 1,
+        "name": "paysOnePeriod",
+        "arity": 5,
+        "entryPoint": false,
+        "calls": [],
+        "closure": [
+          1
+        ],
+        "component": 1,
+        "recursive": false,
+        "reads": [],
+        "writes": [],
+        "effects": [],
+        "unknown": false,
+        "bounded": true,
+        "maximumDirectInvocations": 0
+      },
+      {
+        "id": 2,
+        "name": "claim",
+        "arity": 0,
+        "entryPoint": true,
+        "selector": "a443c5e4",
+        "calls": [
+          1
+        ],
+        "closure": [
+          1,
+          2
+        ],
+        "component": 2,
+        "recursive": false,
+        "reads": [],
+        "writes": [],
+        "effects": [],
+        "unknown": false,
+        "bounded": true,
+        "maximumDirectInvocations": 0
+      },
+      {
+        "id": 3,
+        "name": "pause",
+        "arity": 0,
+        "entryPoint": true,
+        "selector": "2138ec0c",
+        "calls": [
+          0,
+          1
+        ],
+        "closure": [
+          0,
+          1,
+          3
+        ],
+        "component": 3,
+        "recursive": false,
+        "reads": [],
+        "writes": [],
+        "effects": [],
+        "unknown": false,
+        "bounded": true,
+        "maximumDirectInvocations": 0
+      },
+      {
+        "id": 4,
+        "name": "topUp",
+        "arity": 0,
+        "entryPoint": true,
+        "selector": "a71b59cb",
+        "calls": [
+          1
+        ],
+        "closure": [
+          1,
+          4
+        ],
+        "component": 4,
+        "recursive": false,
+        "reads": [],
+        "writes": [],
+        "effects": [],
+        "unknown": false,
+        "bounded": true,
+        "maximumDirectInvocations": 0
+      },
+      {
+        "id": 5,
+        "name": "changePlan",
+        "arity": 0,
+        "entryPoint": true,
+        "selector": "3f00ae89",
+        "calls": [
+          0
+        ],
+        "closure": [
+          0,
+          5
+        ],
+        "component": 5,
+        "recursive": false,
+        "reads": [],
+        "writes": [],
+        "effects": [],
+        "unknown": false,
+        "bounded": true,
+        "maximumDirectInvocations": 0
+      },
+      {
+        "id": 6,
+        "name": "cancel",
+        "arity": 0,
+        "entryPoint": true,
+        "selector": "61d66248",
+        "calls": [
+          0
+        ],
+        "closure": [
+          0,
+          6
+        ],
+        "component": 6,
+        "recursive": false,
+        "reads": [],
+        "writes": [],
+        "effects": [],
+        "unknown": false,
+        "bounded": true,
+        "maximumDirectInvocations": 0
+      }
+    ],
+    "components": [
+      {
+        "id": 0,
+        "functions": [
+          0
+        ],
+        "recursive": false
+      },
+      {
+        "id": 1,
+        "functions": [
+          1
+        ],
+        "recursive": false
+      },
+      {
+        "id": 2,
+        "functions": [
+          2
+        ],
+        "recursive": false
+      },
+      {
+        "id": 3,
+        "functions": [
+          3
+        ],
+        "recursive": false
+      },
+      {
+        "id": 4,
+        "functions": [
+          4
+        ],
+        "recursive": false
+      },
+      {
+        "id": 5,
+        "functions": [
+          5
+        ],
+        "recursive": false
+      },
+      {
+        "id": 6,
+        "functions": [
+          6
+        ],
+        "recursive": false
+      }
+    ]
+  }
+}

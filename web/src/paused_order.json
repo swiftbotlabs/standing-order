@@ -1,0 +1,240 @@
+{
+  "contractName": "PausedOrder",
+  "constructorInputs": [
+    {
+      "name": "subscriber",
+      "type": "bytes20"
+    },
+    {
+      "name": "resumeTo",
+      "type": "bytes32"
+    }
+  ],
+  "abi": [
+    {
+      "name": "resume",
+      "selector": "2b5fb2f5",
+      "inputs": [],
+      "sourceEffectOrder": "unsupported-flow"
+    },
+    {
+      "name": "cancel",
+      "selector": "61d66248",
+      "inputs": [],
+      "sourceEffectOrder": "unsupported-flow"
+    }
+  ],
+  "bytecode": "538a88548a88558a69c3529dc0009dc452a16900cd02aa20547a7e01877e8800d1008800cc00c602d00794518aa269c4529c6351cd0376a91453797e0288ac7e88686d51 2b5fb2f5 OP_DEFINE 538a88548a88558a69c4519d00cd0376a914537a7e0288ac7e877777 61d66248 OP_DEFINE 765102ff008d9301218001207f77010088 OP_1 OP_DEFINE 7f77760141876351677601618768 OP_2 OP_DEFINE c38ccac38cc70376a91453797e0288ac7e OP_3 OP_DEFINE 768277518a6e012194518a7f7578012294518a7f770121 OP_4 OP_DEFINE 7c78012294518a7f757c012394518a528a OP_5 OP_DEFINE OP_DEPTH OP_1SUB OP_ROLL OP_SIZE OP_4 OP_NUMEQUALVERIFY OP_INVOKE",
+  "source": "pragma solidcash ^0.50.0;\n\n/* Paused Standing Order: where a StandingOrderPlus waits while its subscriber has paused it.\n *\n * No one can claim from here. The subscriber can resume (the funds go back to the exact order covenant they came\n * from, `resumeTo` = hash256 of its redeem script) or cancel (everything back to the subscriber).\n * Pausing already paid the merchant for the period in progress, so resuming restarts the clock fairly.\n * Authorization works like StandingOrder.cancel(): a sibling coin from the subscriber's own address, signed over the\n * whole transaction, so every wallet can sign it and no signature lives inside the contract.\n */\ncontract PausedOrder(\n    bytes20 subscriber,\n    bytes32 resumeTo\n) {\n    int constant MAX_FEE = 2000;\n\n    // The LAST input is a coin from the subscriber, signed with sighash ALL or ALL|UTXOS (never SINGLE/NONE/ANYONECANPAY).\n    modifier onlySubscriber() {\n        bytes auth = tx.inputs[tx.inputs.length - 1].unlockingBytecode;\n        require(tx.inputs[tx.inputs.length - 1].lockingBytecode == new LockingBytecodeP2PKH(subscriber), \"not the subscriber\");\n        int n = auth.length;\n        require(auth.slice(n - 34, n - 33) == 0x21, \"auth input is not P2PKH\");\n        bytes ht = auth.slice(n - 35, n - 34);\n        require(ht == 0x41 || ht == 0x61, \"auth signature must cover the whole transaction\");\n        _;\n    }\n\n    // Back to the order covenant this came from; the next claim waits a full period from now.\n    function resume() onlySubscriber {\n        require(tx.inputs.length == 2, \"order coin + subscriber coin only\");\n        require(this.activeInputIndex == 0, \"order coin first\");\n        require(tx.outputs.length <= 2, \"order + subscriber change only\");\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2SH32(resumeTo), \"must resume to the same order\");\n        require(tx.outputs[0].tokenCategory == 0x, \"no token may ride on the order coin\");\n        require(tx.outputs[0].value >= tx.inputs[0].value - MAX_FEE, \"order balance must be kept\");\n        if (tx.outputs.length == 2) {\n            require(tx.outputs[1].lockingBytecode == new LockingBytecodeP2PKH(subscriber), \"change goes to the subscriber\");\n        }\n    }\n\n    // Everything back to the subscriber.\n    function cancel() onlySubscriber {\n        require(tx.outputs.length == 1, \"single refund output\");\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(subscriber), \"refund goes to the subscriber\");\n    }\n}\n",
+  "debug": {
+    "bytecode": "44538a88548a88558a69c3529dc0009dc452a16900cd02aa20547a7e01877e8800d1008800cc00c602d00794518aa269c4529c6351cd0376a91453797e0288ac7e88686d51042b5fb2f5891c538a88548a88558a69c4519d00cd0376a914537a7e0288ac7e8777770461d662488911765102ff008d9301218001207f7701008851890e7f77760141876351677601618768528911c38ccac38cc70376a91453797e0288ac7e538917768277518a6e012194518a7f7578012294518a7f7701215489117c78012294518a7f757c012394518a528a5589748c7a82549d8a",
+    "sourceMap": "29:4:39:5;;;42::45;;;11:0:46:1;;;;;;;;;;;;;;;;;;;;;",
+    "logs": [],
+    "requires": [],
+    "functionDebug": {
+      "2b5fb2f5": {
+        "requires": [
+          {
+            "ip": 2,
+            "line": 20,
+            "message": "not the subscriber"
+          },
+          {
+            "ip": 5,
+            "line": 22,
+            "message": "auth input is not P2PKH"
+          },
+          {
+            "ip": 8,
+            "line": 24,
+            "message": "auth signature must cover the whole transaction"
+          },
+          {
+            "ip": 11,
+            "line": 30,
+            "message": "order coin + subscriber coin only"
+          },
+          {
+            "ip": 14,
+            "line": 31,
+            "message": "order coin first"
+          },
+          {
+            "ip": 18,
+            "line": 32,
+            "message": "order + subscriber change only"
+          },
+          {
+            "ip": 27,
+            "line": 33,
+            "message": "must resume to the same order"
+          },
+          {
+            "ip": 31,
+            "line": 34,
+            "message": "no token may ride on the order coin"
+          },
+          {
+            "ip": 41,
+            "line": 35,
+            "message": "order balance must be kept"
+          },
+          {
+            "ip": 54,
+            "line": 37,
+            "message": "change goes to the subscriber"
+          }
+        ],
+        "logs": [],
+        "sourceMap": "19:31:19:47;;20:8:20:127:1;21:16:21:20:0;;22:8:22:79:1;23:19:23:23:0;;24:8:24:93:1;30:16:30:32:0;:36::37;:8::76:1;31:16:31:37:0;:41::42;:8::64:1;32:16:32:33:0;:37::38;:16:::1;:8::74;33:27:33:28:0;:16::45:1;:49::84:0;:75::83;;:49::84:1;;;:8::119;34:27:34:28:0;:16::43:1;:47::49:0;:8::90:1;35:27:35:28:0;:16::35:1;:49::50:0;:39::57:1;15:27:15:31:0;35:39:35:67:1;;;:16;:8::99;36:12:36:29:0;:33::34;:12:::1;:36:38:9:0;37:31:37:32;:20::49:1;:53::89:0;:78::88;;:53::89:1;;;:12::124;36:36:38:9;29:4:39:5;"
+      },
+      "61d66248": {
+        "requires": [
+          {
+            "ip": 2,
+            "line": 20,
+            "message": "not the subscriber"
+          },
+          {
+            "ip": 5,
+            "line": 22,
+            "message": "auth input is not P2PKH"
+          },
+          {
+            "ip": 8,
+            "line": 24,
+            "message": "auth signature must cover the whole transaction"
+          },
+          {
+            "ip": 11,
+            "line": 43,
+            "message": "single refund output"
+          },
+          {
+            "ip": 21,
+            "line": 44,
+            "message": "refund goes to the subscriber"
+          }
+        ],
+        "logs": [],
+        "sourceMap": "19:31:19:47;;20:8:20:127:1;21:16:21:20:0;;22:8:22:79:1;23:19:23:23:0;;24:8:24:93:1;43:16:43:33:0;:37::38;:8::64:1;44:27:44:28:0;:16::45:1;:49::85:0;:74::84;;:49::85:1;;;:8::120;42:4:45:5;"
+      }
+    },
+    "invokeDebug": {
+      "1": {
+        "bytecode": "765102ff008d9301218001207f77010088",
+        "name": "outlined source span 1",
+        "requires": [],
+        "logs": [],
+        "sourceMap": "21:8:21:28:1;;;;;;;;;;;"
+      },
+      "2": {
+        "bytecode": "7f77760141876351677601618768",
+        "name": "outlined source span 2",
+        "requires": [],
+        "logs": [],
+        "sourceMap": "23:19:23:45:1;;24:16:24:18:0;:22::26;:16:::1;:::40:0;;::::1;:30::32:0;:36::40;:30:::1;:16"
+      },
+      "3": {
+        "bytecode": "c38ccac38cc70376a91453797e0288ac7e",
+        "name": "outlined source span 3",
+        "requires": [],
+        "logs": [],
+        "sourceMap": "19:31:19:47;:::51:1;:21::70;20:26:20:42:0;:::46:1;:16::63;:67::103:0;:92::102;;:67::103:1;;"
+      },
+      "4": {
+        "bytecode": "768277518a6e012194518a7f7578012294518a7f770121",
+        "name": "outlined source span 4",
+        "requires": [],
+        "logs": [],
+        "sourceMap": "21:16:21:20;:::27:1;;:8::28;;22:16:22:36:0;:39::41;:35:::1;;;:16::42;;:27::28:0;:31::33;:27:::1;;;:16::42;;:46::50:0"
+      },
+      "5": {
+        "bytecode": "7c78012294518a7f757c012394518a528a",
+        "name": "outlined source span 5",
+        "requires": [],
+        "logs": [],
+        "sourceMap": "23:19:23:23;:38::39;:42::44;:38:::1;;;:19::45;;:30::31:0;:34::36;:30:::1;;;:19::45;"
+      }
+    }
+  },
+  "functionBodies": {
+    "2b5fb2f5": "538a88548a88558a69c3529dc0009dc452a16900cd02aa20547a7e01877e8800d1008800cc00c602d00794518aa269c4529c6351cd0376a91453797e0288ac7e88686d51",
+    "61d66248": "538a88548a88558a69c4519d00cd0376a914537a7e0288ac7e877777"
+  },
+  "fingerprint": "ba464e3d1cf5549321853ec269582eda23bac06a39ad798879875ceb3fcc3aa7",
+  "compiler": {
+    "name": "solidc",
+    "version": "0.50.0",
+    "options": {
+      "enforceFunctionParameterTypes": true,
+      "enforceLocktimeGuard": true,
+      "enforceFinalRequire": true,
+      "commitmentLimit": 128,
+      "messageBus": false
+    }
+  },
+  "updatedAt": "2026-11-15T14:33:05.672Z",
+  "invocationAnalysis": {
+    "version": 1,
+    "protocolVersions": [
+      1
+    ],
+    "functions": [
+      {
+        "id": 0,
+        "name": "resume",
+        "arity": 0,
+        "entryPoint": true,
+        "selector": "2b5fb2f5",
+        "calls": [],
+        "closure": [
+          0
+        ],
+        "component": 0,
+        "recursive": false,
+        "reads": [],
+        "writes": [],
+        "effects": [],
+        "unknown": false,
+        "bounded": true,
+        "maximumDirectInvocations": 0
+      },
+      {
+        "id": 1,
+        "name": "cancel",
+        "arity": 0,
+        "entryPoint": true,
+        "selector": "61d66248",
+        "calls": [],
+        "closure": [
+          1
+        ],
+        "component": 1,
+        "recursive": false,
+        "reads": [],
+        "writes": [],
+        "effects": [],
+        "unknown": false,
+        "bounded": true,
+        "maximumDirectInvocations": 0
+      }
+    ],
+    "components": [
+      {
+        "id": 0,
+        "functions": [
+          0
+        ],
+        "recursive": false
+      },
+      {
+        "id": 1,
+        "functions": [
+          1
+        ],
+        "recursive": false
+      }
+    ]
+  }
+}

@@ -18,7 +18,7 @@ function b64urlToJson(s) {
 }
 function checkPlan(o) {
   // shape only; the relayer re-validates fully (address checksum, contract on chain) before acting
-  if (!o || o.v !== 1) throw new Error('bad plan');
+  if (!o || (o.v !== 1 && o.v !== 2)) throw new Error('bad plan');
   if (o.net !== 'mainnet' && o.net !== 'chipnet') throw new Error('bad net');
   const prefix = o.net === 'mainnet' ? 'bitcoincash:' : 'bchtest:';
   if (typeof o.merchant !== 'string' || !new RegExp(`^(${prefix})?[qpzr][0-9a-z]{41,60}$`).test(o.merchant)) throw new Error('bad merchant');
@@ -26,6 +26,10 @@ function checkPlan(o) {
   if (!Number.isInteger(o.period) || o.period < 1 || o.period > 65535) throw new Error('bad period');
   if (!Number.isInteger(o.periods) || o.periods < 1 || o.periods > 120) throw new Error('bad periods');
   if (o.token && !/^[0-9a-f]{64}$/.test(String(o.token.category))) throw new Error('bad token');
+  if (o.split !== undefined) {
+    if (o.v !== 2 || o.token || typeof o.split !== 'object' || typeof o.split.to !== 'string'
+      || !new RegExp(`^(${prefix})?[qpzr][0-9a-z]{41,60}$`).test(o.split.to) || !/^\d{1,18}$/.test(String(o.split.amount))) throw new Error('bad split');
+  }
   return { net: o.net, merchant: o.merchant.includes(':') ? o.merchant : prefix + o.merchant };
 }
 async function sha256hex(s) {

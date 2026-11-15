@@ -1,0 +1,46 @@
+pragma solidcash ^0.50.0;
+
+/* Paused Standing Order: where a StandingOrderPlus waits while its subscriber has paused it.
+ *
+ * No one can claim from here. The subscriber can resume (the funds go back to the exact order covenant they came
+ * from, `resumeTo` = hash256 of its redeem script) or cancel (everything back to the subscriber).
+ * Pausing already paid the merchant for the period in progress, so resuming restarts the clock fairly.
+ * Authorization works like StandingOrder.cancel(): a sibling coin from the subscriber's own address, signed over the
+ * whole transaction, so every wallet can sign it and no signature lives inside the contract.
+ */
+contract PausedOrder(
+    bytes20 subscriber,
+    bytes32 resumeTo
+) {
+    int constant MAX_FEE = 2000;
+
+    // The LAST input is a coin from the subscriber, signed with sighash ALL or ALL|UTXOS (never SINGLE/NONE/ANYONECANPAY).
+    modifier onlySubscriber() {
+        bytes auth = tx.inputs[tx.inputs.length - 1].unlockingBytecode;
+        require(tx.inputs[tx.inputs.length - 1].lockingBytecode == new LockingBytecodeP2PKH(subscriber), "not the subscriber");
+        int n = auth.length;
+        require(auth.slice(n - 34, n - 33) == 0x21, "auth input is not P2PKH");
+        bytes ht = auth.slice(n - 35, n - 34);
+        require(ht == 0x41 || ht == 0x61, "auth signature must cover the whole transaction");
+        _;
+    }
+
+    // Back to the order covenant this came from; the next claim waits a full period from now.
+    function resume() onlySubscriber {
+        require(tx.inputs.length == 2, "order coin + subscriber coin only");
+        require(this.activeInputIndex == 0, "order coin first");
+        require(tx.outputs.length <= 2, "order + subscriber change only");
+        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2SH32(resumeTo), "must resume to the same order");
+        require(tx.outputs[0].tokenCategory == 0x, "no token may ride on the order coin");
+        require(tx.outputs[0].value >= tx.inputs[0].value - MAX_FEE, "order balance must be kept");
+        if (tx.outputs.length == 2) {
+            require(tx.outputs[1].lockingBytecode == new LockingBytecodeP2PKH(subscriber), "change goes to the subscriber");
+        }
+    }
+
+    // Everything back to the subscriber.
+    function cancel() onlySubscriber {
+        require(tx.outputs.length == 1, "single refund output");
+        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(subscriber), "refund goes to the subscriber");
+    }
+}

@@ -70,3 +70,6 @@ details { margin-top: 6px; } details div { font-size: 14px; }
   .top { flex-wrap: wrap; gap: 6px; }
   .top nav { font-size: 14px; }
 }
+
+/* the hidden attribute must win over .row { display: grid } (split row for PUSD/token plans) */
+[hidden] { display: none !important; }

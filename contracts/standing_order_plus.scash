@@ -1,0 +1,129 @@
+pragma solidcash ^0.50.0;
+
+/* Standing Order Plus: a subscription covenant with pause/resume, a split payout, top-ups and a plan change.
+ *
+ * Funded once by the subscriber. After each `period` blocks anyone may claim: the merchant gets `amountPerPeriod`
+ * and, if `splitAmount` > 0, `splitPayee` gets `splitAmount` (a co-creator, an affiliate or a platform fee);
+ * the rest returns to this covenant, so the next claim waits another full period.
+ * Anything that moves the order coin restarts its clock (UTXO age), so every such move other than cancel PAYS the
+ * period in progress first: the merchant can never be kept waiting by pausing, resuming or topping up.
+ *  - pause():      subscriber only. Pays the current period, then moves the rest to this order's PausedOrder, which
+ *                  no one can claim from and whose resume() can only send it back here (address computed on chain).
+ *  - topUp():      anyone. Pays the current period and leaves the order with at least what it had.
+ *  - changePlan(): merchant AND subscriber together move the balance to a new order (new price, period or split).
+ *  - cancel():     subscriber only, everything back.
+ * Authorization never puts a signature inside the contract: a sibling coin from the party's own P2PKH address,
+ * signed over the whole transaction (sighash ALL or ALL|UTXOS), so every BCH wallet can sign it.
+ */
+contract StandingOrderPlus(
+    bytes20 merchant,
+    bytes20 subscriber,
+    int amountPerPeriod,
+    int period,
+    int maxFee,
+    bytes20 splitPayee,
+    int splitAmount,
+    // Random per subscription: every order gets its own covenant. Not used by the logic.
+    bytes8 orderId
+) {
+    // Redeem script of PausedOrder without its two constructor pushes (scripts/paused_template.mjs).
+    bytes constant PAUSED_TEMPLATE = 0x44538a88548a88558a69c3529dc0009dc452a16900cd02aa20547a7e01877e8800d1008800cc00c602d00794518aa269c4529c6351cd0376a91453797e0288ac7e88686d51042b5fb2f5891c538a88548a88558a69c4519d00cd0376a914537a7e0288ac7e8777770461d662488911765102ff008d9301218001207f7701008851890e7f77760141876351677601618768528911c38ccac38cc70376a91453797e0288ac7e538917768277518a6e012194518a7f7578012294518a7f7701215489117c78012294518a7f757c012394518a528a5589748c7a82549d8a;
+
+    // True when input i is a coin of `owner`'s P2PKH address, signed with sighash ALL or ALL|UTXOS.
+    function signedBy(int i, bytes20 owner) internal returns (bool) {
+        bytes auth = tx.inputs[i].unlockingBytecode;
+        int n = auth.length;
+        bytes ht = auth.slice(n - 35, n - 34);
+        return tx.inputs[i].lockingBytecode == new LockingBytecodeP2PKH(owner)
+            && auth.slice(n - 34, n - 33) == 0x21
+            && (ht == 0x41 || ht == 0x61);
+    }
+
+    // Outputs 0 (and 1 with a split) pay exactly one period. Returns the index of the next output.
+    // (Internal functions run as OP_INVOKE subroutines and see only their arguments, so the terms are passed in.)
+    function paysOnePeriod(bytes20 to, int amount, bytes20 splitTo, int split, int fee) internal returns (int) {
+        require(amount > 0 && split >= 0 && fee >= 0, "bad terms");
+        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(to), "output 0 pays the merchant");
+        require(tx.outputs[0].value == amount, "exactly one period");
+        int next = 1;
+        if (split > 0) {
+            require(tx.outputs[1].lockingBytecode == new LockingBytecodeP2PKH(splitTo), "output 1 pays the split");
+            require(tx.outputs[1].value == split, "exactly one split");
+            next = 2;
+        }
+        return next;
+    }
+
+    modifier onlySubscriber() {
+        require(signedBy(tx.inputs.length - 1, subscriber), "subscriber coin must be the last input");
+        _;
+    }
+
+    function claim() {
+        require(period >= 1 && period <= 65535, "period out of range");
+        require(this.age >= period, "one claim per period");
+        require(tx.inputs.length == 1, "the order coin alone");
+
+        int currentValue = tx.inputs[this.activeInputIndex].value;
+        int perPeriod = amountPerPeriod + splitAmount;
+        int changeValue = currentValue - perPeriod - maxFee;
+
+        if (changeValue < perPeriod + maxFee) {
+            // Last claim: the order ends. The split payee still gets its share when the rest covers it.
+            require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(merchant), "output 0 pays the merchant");
+            if (splitAmount > 0 && currentValue - maxFee >= perPeriod) {
+                require(tx.outputs.length == 2);
+                require(tx.outputs[1].lockingBytecode == new LockingBytecodeP2PKH(splitPayee), "output 1 pays the split");
+                require(tx.outputs[1].value == splitAmount, "exactly one split");
+                require(tx.outputs[0].value >= currentValue - maxFee - splitAmount);
+            } else {
+                require(tx.outputs.length == 1);
+                require(tx.outputs[0].value >= currentValue - maxFee);
+            }
+        } else {
+            int k = paysOnePeriod(merchant, amountPerPeriod, splitPayee, splitAmount, maxFee);
+            require(tx.outputs.length == k + 1, "no extra outputs");
+            require(tx.outputs[k].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode, "change stays in the order");
+            require(tx.outputs[k].tokenCategory == 0x, "no token may ride on the order coin");
+            require(tx.outputs[k].value >= changeValue);
+        }
+    }
+
+    function pause() onlySubscriber {
+        require(tx.inputs.length == 2 && this.activeInputIndex == 0, "order coin first, subscriber coin second");
+        int changeValue = tx.inputs[0].value - amountPerPeriod - splitAmount - maxFee;
+        require(changeValue >= amountPerPeriod + splitAmount + maxFee, "too little left to pause");
+        int k = paysOnePeriod(merchant, amountPerPeriod, splitPayee, splitAmount, maxFee);
+        require(tx.outputs.length <= k + 2, "period, paused order, subscriber change");
+        bytes32 self = bytes32(tx.inputs[0].lockingBytecode.slice(2, 34));
+        bytes pausedScript = 0x20 + self + 0x14 + subscriber + PAUSED_TEMPLATE;
+        require(tx.outputs[k].lockingBytecode == new LockingBytecodeP2SH32(hash256(pausedScript)), "must go to this order's paused covenant");
+        require(tx.outputs[k].tokenCategory == 0x, "no token may ride on the order coin");
+        require(tx.outputs[k].value >= changeValue, "balance kept");
+        if (tx.outputs.length == k + 2) {
+            require(tx.outputs[k + 1].lockingBytecode == new LockingBytecodeP2PKH(subscriber), "change goes to the subscriber");
+        }
+    }
+
+    function topUp() {
+        require(this.activeInputIndex == 0, "order coin first");
+        int k = paysOnePeriod(merchant, amountPerPeriod, splitPayee, splitAmount, maxFee);
+        require(tx.outputs[k].lockingBytecode == tx.inputs[0].lockingBytecode, "stays in this order");
+        require(tx.outputs[k].tokenCategory == 0x, "no token may ride on the order coin");
+        require(tx.outputs[k].value >= tx.inputs[0].value, "after paying this period the order holds at least what it had");
+    }
+
+    function changePlan() {
+        require(tx.inputs.length == 3 && this.activeInputIndex == 0, "order, merchant coin, subscriber coin");
+        require(signedBy(1, merchant), "merchant coin second");
+        require(signedBy(2, subscriber), "subscriber coin last");
+        bytes lb = tx.outputs[0].lockingBytecode;
+        require(lb.length == 35 && lb == new LockingBytecodeP2SH32(bytes32(lb.slice(2, 34))), "new order is a P2SH32 covenant");
+        require(tx.outputs[0].value >= tx.inputs[0].value - maxFee, "balance kept");
+    }
+
+    function cancel() onlySubscriber {
+        require(tx.outputs.length == 1, "single refund output");
+        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(subscriber), "refund goes to the subscriber");
+    }
+}

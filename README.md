@@ -20,7 +20,25 @@ kick-off; the tag `pre-kickoff` marks the state at kick-off.
 The period check is a relative timelock (`this.age >= period`) on the covenant's own UTXO, so every claim restarts the
 clock: at most one claim per period, enforced by consensus, not by our server.
 
-## Contracts (SolidCash)
+## Standing Order Plus (v2, all new BCH orders): pause, resume, top up, split, plan change
+`contracts/standing_order_plus.scash` + `contracts/paused_order.scash`, built in the BLAZE window:
+
+| Function | Who | What it enforces |
+|---|---|---|
+| `claim()` | anyone | one period per `period` blocks: merchant gets `amountPerPeriod`, an optional **split payee** (co-creator, affiliate, platform fee) gets `splitAmount`; the change must return to the same covenant, carrying no token |
+| `pause()` | subscriber | pays the period in progress, then moves the rest to this order's `PausedOrder`; that address is computed **on chain** from the order's own hash (`hash256(0x20 + self + 0x14 + subscriber + PAUSED_TEMPLATE)`), and no one can claim from it |
+| `PausedOrder.resume()` | subscriber | only back to the exact order it came from (`resumeTo`); the next claim waits one full period |
+| `topUp()` | anyone | pays the period in progress and leaves the order with at least what it had |
+| `changePlan()` | merchant **and** subscriber | moves the balance to a new order (new price, period or split); both sign the whole transaction |
+| `cancel()` | subscriber | everything back, from the order or from its paused covenant |
+
+Every move of the order coin restarts its clock (UTXO age), so every move other than cancel pays the period in progress
+first: pausing, resuming or topping up can never keep the merchant waiting. SolidCash features used: a custom
+`modifier`, `internal` functions (OP_DEFINE / OP_INVOKE subroutines), a `bytes constant` template, `require` messages,
+`LockingBytecodeP2SH32` + `hash256` covenant construction, `this.age`, token introspection (`tokenCategory == 0x`).
+Sizes: 1,005 bytes (order) and 274 bytes (paused) with their arguments; v2 claims allow up to 2,000 sats of fee.
+
+## Contracts (SolidCash), v1
 - `contracts/standing_order.scash` (BCH): `claim()` / `cancel()`, 277 bytes with its arguments.
 - `contracts/standing_order_token.scash` (fungible CashTokens, e.g. PUSD): same rules in tokens; the covenant keeps a small
   BCH pool for fees; the last claim pays the remaining tokens and BCH to the merchant, 348 bytes with its arguments.
@@ -28,7 +46,7 @@ clock: at most one claim per period, enforced by consensus, not by our server.
 ## Tests
 ```
 npm install
-npx --no-install solidhat test     # 35 tests (both contracts); replay attacks checked by the libauth 2026 VM
+npx --no-install solidhat test     # 77 tests; replay and v2 attacks checked by the libauth 2026 VM
 ```
 Negative tests were proven with planted controls (flipping an expectation turns the suite red).
 
@@ -86,3 +104,15 @@ could be replayed next to the covenant to drain it. `cancel()` now requires sigh
 single output to the subscriber; `test/replay.test.ts` replays such signatures and checks the libauth 2026 VM rejects
 them (all of them pass against the earlier version). The app and relayer also ignore junk coins sent to a covenant
 (dust, foreign tokens, NFTs), so nobody can block a claim or a cancel that way.
+
+## Security review of v2 (15 Nov)
+An independent adversarial review found no way to take funds. It found four weaknesses, all fixed with tests that run
+the attack on the 2026 VM (`test/review_v2.test.ts`):
+1. anyone could attach a newly minted token to the order coin, which made apps treat the order as gone: order coins
+   must now carry no token, and the app and relayer pick the order coin by value;
+2. pause/resume and top-up restarted the claim clock without paying: both now pay the period in progress;
+3. the split payee missed the final period: the last claim now pays it;
+4. `changePlan` accepted any 35-byte script starting `aa20`: it now requires a real P2SH32.
+Known v1 limitation (orders funded before v2): the first claim of a v1 order can carry a minted token; the app and relayer
+handle such a coin and drop the token.
+
