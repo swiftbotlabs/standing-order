@@ -142,8 +142,9 @@ function renderNew() {
       const link = `${location.origin}${location.pathname}#/pay?p=${encodePlan(plan)}`;
       const out = document.getElementById('out')!;
       out.hidden = false; err.hidden = true;
-      out.innerHTML = `<p>Share this link with your subscribers:</p><input readonly value="${esc(link)}" onclick="this.select()" />
+      out.innerHTML = `<p>Share this link with your subscribers:</p><input readonly id="paylink" value="${esc(link)}" />
         <p class="muted">${esc(plan.label)}: ${formatAmount(plan, plan.amount)} ${periodText(plan.period)}; the subscriber prepays ${plan.periods} periods (${prepayText(plan)}).</p>`;
+      (document.getElementById('paylink') as HTMLInputElement).addEventListener('click', (ev) => (ev.currentTarget as HTMLInputElement).select());
     } catch (x: any) { err.hidden = false; err.textContent = x.message; }
   });
 }
