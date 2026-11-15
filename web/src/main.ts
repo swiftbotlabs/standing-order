@@ -222,7 +222,7 @@ async function renderOrder() {
       const s = await orderState(plan, sub, oid);
       stateEl.innerHTML = `<div class="kv"><span>Left in the order</span><b>${esc(formatAmount(plan, s.balance))}</b></div>
         <div class="kv"><span>Periods left</span><b>${s.periodsLeft}</b></div>
-        <div class="kv"><span>Next payment</span><b>${s.balance === 0n ? 'order closed' : s.paused ? 'paused: none until you resume' : s.utxoHeight === 0 ? 'after the funding confirms' : s.nextClaimIn === 0 ? 'due now' : `in ${s.nextClaimIn} block(s)`}</b></div>
+        <div class="kv"><span>Next payment</span><b>${s.balance === 0n ? 'order closed' : s.paused ? 'paused: none until you resume' : s.utxoHeight === 0 ? (s.history.length > 1 ? 'one period after the latest transaction confirms' : 'one period after the funding confirms') : s.nextClaimIn === 0 ? 'due now' : `in ${s.nextClaimIn} block(s)`}</b></div>
         <div class="kv"><span>Contract</span><code>${esc(s.address)}</code></div>
         <details><summary>History (${s.history.length})</summary>${s.history.filter((h) => /^[0-9a-f]{64}$/.test(h.txid)).map((h) => `<div><a href="${explorer(plan.net, h.txid)}" target="_blank" rel="noopener">${h.txid.slice(0, 16)}...</a> ${h.height > 0 ? `block ${h.height}` : 'unconfirmed'}</div>`).join('')}</details>`;
       (document.getElementById('collect') as HTMLButtonElement).disabled = !(s.balance > 0n && !s.paused && s.utxoHeight > 0 && s.nextClaimIn === 0);
