@@ -218,7 +218,7 @@ async function renderOrder() {
   app.innerHTML = `<section class="card">${planCard(plan)}
     ${tx ? `<p class="ok" id="started">Order started. <a href="${explorer(plan.net, tx)}" target="_blank" rel="noopener">View transaction</a></p>` : ''}
     <div id="state" class="state">Loading order...</div>
-    <div class="actions"><button class="btn" id="collect">Collect due payment</button>${isPlus(plan) ? ' <button class="btn ghost" id="pause">Pause</button> <button class="btn ghost" id="topup">Add a period</button>' : ''} <button class="btn ghost" id="cancel">Cancel order</button></div>
+    <div class="actions" id="actions"><button class="btn" id="collect">Collect due payment</button>${isPlus(plan) ? ' <button class="btn ghost" id="pause">Pause</button> <button class="btn ghost" id="topup">Add a period</button>' : ''} <button class="btn ghost" id="cancel">Cancel order</button></div>
     <p class="err" id="err" hidden></p><p class="muted" id="msg"></p></section>`;
   const stateEl = document.getElementById('state')!, err = document.getElementById('err')!, msg = document.getElementById('msg')!;
   const refresh = async () => {
@@ -227,13 +227,14 @@ async function renderOrder() {
       stateEl.innerHTML = `<div class="kv"><span>Left in the order</span><b>${esc(formatAmount(plan, s.balance))}</b></div>
         <div class="kv"><span>Periods left</span><b>${s.periodsLeft}</b></div>
         <div class="kv"><span>Next payment</span><b>${s.balance === 0n ? 'order closed' : s.paused ? 'paused: none until you resume' : s.utxoHeight === 0 ? (s.history.length > 1 ? 'one period after the latest transaction confirms' : 'one period after the funding confirms') : s.nextClaimIn === 0 ? 'due now' : `in ${s.nextClaimIn} block(s)`}</b></div>
-        <div class="kv"><span>Contract</span><code>${esc(s.address)}</code></div>
+        <div class="kv"><span>${s.closed ? 'Last contract' : s.paused ? 'Paused contract' : 'Contract'}</span><code>${esc(s.address)}</code></div>
         <details><summary>History (${s.history.length})</summary>${s.history.filter((h) => /^[0-9a-f]{64}$/.test(h.txid)).map((h) => `<div><a href="${explorer(plan.net, h.txid)}" target="_blank" rel="noopener">${h.txid.slice(0, 16)}...</a> ${h.height > 0 ? `block ${h.height}` : 'unconfirmed'}</div>`).join('')}</details>`;
       (document.getElementById('collect') as HTMLButtonElement).disabled = !(s.balance > 0n && !s.paused && s.utxoHeight > 0 && s.nextClaimIn === 0);
       const pb = document.getElementById('pause') as HTMLButtonElement | null, tb = document.getElementById('topup') as HTMLButtonElement | null;
       if (pb) { pb.textContent = s.paused ? 'Resume' : 'Pause'; pb.dataset.kind = s.paused ? 'resume' : 'pause'; pb.disabled = s.balance === 0n; }
       if (tb) tb.disabled = s.balance === 0n || s.paused;
       (document.getElementById('cancel') as HTMLButtonElement).disabled = s.balance === 0n;
+      (document.getElementById('actions') as HTMLElement).hidden = s.closed;   // a closed order offers no actions
       const started = document.getElementById('started'); if (started) started.hidden = s.balance === 0n && s.history.length > 1;
     } catch (x: any) { stateEl.textContent = `Could not load the order: ${x.message}`; }
   };

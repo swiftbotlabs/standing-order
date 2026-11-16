@@ -330,20 +330,28 @@ export interface OrderState {
   nextClaimIn: number;       // blocks until the next claim is allowed (0 = due now)
   periodsLeft: number;
   paused: boolean;           // v2: the balance sits in the paused covenant (no claims until resumed)
+  closed: boolean;           // was funded and holds nothing now (claimed out or cancelled)
   history: { txid: string; height: number }[];
 }
 export async function orderState(plan: Plan, subscriberHash: Uint8Array, orderId: Uint8Array): Promise<OrderState> {
   let contract = orderContract(plan, subscriberHash, orderId);
   const net = provider(plan.net);
+  const getHistory = (address: string) => (net as any).performRequest('blockchain.address.get_history', address).catch(() => []);
   let paused = false;
+  let pausedHistory: any[] = [];
   if (isPlus(plan) && !orderUtxos(plan, await contract.getUtxos()).length) {
     const p = pausedContract(plan, subscriberHash, orderId);
     if (orderUtxos(plan, await p.getUtxos()).length) { contract = p; paused = true; }
+    else pausedHistory = await getHistory(p.address);   // closed or empty: was it last held by the paused covenant?
   }
-  const [utxos, tip, history] = await Promise.all([
-    contract.getUtxos(), net.getBlockHeight(),
-    (net as any).performRequest('blockchain.address.get_history', contract.address).catch(() => []),
-  ]);
+  const [utxos, tip, history] = await Promise.all([contract.getUtxos(), net.getBlockHeight(), getHistory(contract.address)]);
+  // A v2 order lives at two addresses (order and paused covenant): show one history, and for a closed order the contract that held it last.
+  const pending = (h: number) => (h > 0 ? h : Number.MAX_SAFE_INTEGER);
+  const lastHeight = (hs: any[]) => hs.reduce((m: number, x: any) => Math.max(m, pending(x.height)), -1);
+  let address = plan.token ? contract.tokenAddress : contract.address;
+  if (pausedHistory.length && lastHeight(pausedHistory) >= lastHeight(history as any[])) address = pausedContract(plan, subscriberHash, orderId).address;
+  const allHistory = [...(history as any[]), ...pausedHistory.filter((x: any) => !(history as any[]).some((y: any) => y.tx_hash === x.tx_hash))]
+    .sort((a: any, b: any) => pending(a.height) - pending(b.height));
   const mine = orderUtxos(plan, utxos);
   const u = mainUtxo(plan, utxos);
   const sats = mine.reduce((a: bigint, x: any) => a + x.satoshis, 0n);
@@ -358,8 +366,9 @@ export async function orderState(plan: Plan, subscriberHash: Uint8Array, orderId
   const periodsLeft = plan.token
     ? Number((balance + plan.amount - 1n) / plan.amount)
     : Number(balance / (per + feeOf(plan))) + (balance % (per + feeOf(plan)) > feeOf(plan) ? 1 : 0);
-  return { address: plan.token ? contract.tokenAddress : contract.address, balance, sats, utxoHeight, tip, nextClaimIn, periodsLeft, paused,
-    history: (history as any[]).map((x) => ({ txid: x.tx_hash, height: x.height })).reverse() };
+  return { address, balance, sats, utxoHeight, tip, nextClaimIn, periodsLeft, paused,
+    closed: balance === 0n && allHistory.length > 0,
+    history: allHistory.map((x: any) => ({ txid: x.tx_hash, height: x.height })).reverse() };
 }
 
 export async function broadcast(net: Net, hex: string): Promise<string> {
