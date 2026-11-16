@@ -13,9 +13,11 @@ export class WizardSession {
   private relay: ReturnType<typeof initiateDappRelay> | null = null;
   uri = '';
   wallet: WalletInfo | null = null;
+  net: Net | null = null;   // network of the current session (pay pages reuse it when it matches)
 
   start(net: Net, onStatus: (s: string) => void, onReady: (w: WalletInfo) => void, onGone: () => void): string {
     this.stop();
+    this.net = net;
     const mgr = new DappConnectionManager('Standing Order', `${location.origin}/icon.png`, { session: false });
     this.mgr = mgr;
     let relayRef: ReturnType<typeof initiateDappRelay> | null = null;
@@ -67,7 +69,7 @@ export class WizardSession {
   stop(): void {
     try { this.mgr?.sendDisconnect('closed'); } catch { /* ignore */ }
     try { this.relay?.cleanup(); } catch { /* ignore */ }
-    this.mgr = null; this.relay = null; this.wallet = null; this.uri = '';
+    this.mgr = null; this.relay = null; this.wallet = null; this.uri = ''; this.net = null;
   }
 }
 

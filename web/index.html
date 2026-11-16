@@ -18,9 +18,19 @@
   </div>
   <header class="top">
     <a href="#/" class="brand"><span class="mark" aria-hidden="true">⟳</span> Standing Order</a>
-    <nav><a href="#/new">Create a pay link</a> · <a href="#/merchant">Merchants</a></nav>
+    <div class="topr"><nav><a href="#/new">Create a pay link</a> · <a href="#/merchant">Merchants</a></nav>
+      <button class="btn primary wc" id="wc-btn" type="button">Connect wallet</button></div>
   </header>
   <main id="app" aria-live="polite"></main>
+  <dialog id="wc-dlg" aria-labelledby="wc-title">
+    <h2 id="wc-title">Connect a wallet</h2>
+    <p class="muted">Scan with a WizardConnect wallet (Selene, Paytaca, Cashonize) or open it on this device.</p>
+    <div class="connect"><canvas id="wc-qr"></canvas><div>
+      <a class="btn" id="wc-open">Open wallet app</a> <button class="btn ghost" id="wc-copy" type="button">Copy link</button>
+      <p class="muted" id="wc-st">Waiting for your wallet...</p>
+      <label class="inline small"><input type="checkbox" id="wc-chip" /> chipnet (test coins)</label></div></div>
+    <form method="dialog"><button class="btn ghost" type="submit">Close</button></form>
+  </dialog>
   <footer class="foot">
     Non-custodial: funds sit in a Bitcoin Cash covenant, not with us. Contract written in SolidCash.
     <span id="netbadge"></span>

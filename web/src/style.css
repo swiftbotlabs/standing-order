@@ -16,7 +16,7 @@ code { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; word-break
 .brand { font-weight: 700; font-size: 18px; color: var(--ink); text-decoration: none; }
 .mark { display: inline-block; color: var(--brand); }
 main { max-width: 960px; margin: 0 auto; padding: 0 16px 48px; }
-.hero h1 { font-size: clamp(30px, 6vw, 52px); line-height: 1.08; letter-spacing: -0.02em; margin: 24px 0 12px; }
+.hero h1 { font-size: clamp(42px, 9vw, 96px); line-height: 1.0; letter-spacing: -0.035em; margin: 20px 0 16px; }
 .lede { font-size: 18px; color: var(--muted); max-width: 640px; }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 40px; }
 .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border-radius: 10px;
@@ -78,3 +78,17 @@ details { margin-top: 6px; } details div { font-size: 14px; }
 .film { margin: 0 0 28px; }
 .film video { width: 100%; aspect-ratio: 16 / 9; display: block; border-radius: 14px; border: 1px solid var(--line); background: #0f1412; }
 .film p { margin-top: 8px; }
+
+/* header: WizardConnect button top right (BLAZE standard) */
+.topr { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+.btn.wc { min-height: 40px; padding: 0 14px; font-size: 15px; white-space: nowrap; }
+.btn.wc.on { background: transparent; color: var(--ink); border-color: var(--brand); }
+.btn.wc.on::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); margin-right: 8px; }
+dialog#wc-dlg { border: 1px solid var(--line); border-radius: 16px; padding: 22px; max-width: 520px; width: calc(100% - 32px); background: var(--card); color: var(--ink); }
+dialog#wc-dlg::backdrop { background: rgba(10, 14, 12, .55); }
+dialog#wc-dlg h2 { margin: 0 0 6px; }
+dialog#wc-dlg form { margin-top: 12px; text-align: right; }
+.small { font-size: 14px; }
+label.inline { display: inline-flex; gap: 6px; align-items: center; }
+label.inline input { width: auto; margin: 0; }
+@media (max-width: 520px) { .topr nav { order: 2; } .btn.wc { order: 1; } }

@@ -8,6 +8,33 @@ import { WizardSession, type WalletInfo } from './wizard';
 
 const app = document.getElementById('app')!;
 const session = new WizardSession();
+
+// ---- header: WizardConnect button, top right (the BLAZE standard placement) ----
+const wcBtn = document.getElementById('wc-btn') as HTMLButtonElement;
+const wcDlg = document.getElementById('wc-dlg') as HTMLDialogElement;
+const short = (a: string) => { const x = a.split(':').pop() || a; return `${x.slice(0, 6)}...${x.slice(-6)}`; };
+function showWallet() {
+  const w = session.wallet;
+  wcBtn.textContent = w ? `${w.name} · ${short(w.address)}${session.net === 'chipnet' ? ' · chipnet' : ''}` : 'Connect wallet';
+  wcBtn.classList.toggle('on', !!w);
+  wcBtn.title = w ? 'Connected. Click to disconnect.' : 'Connect a WizardConnect wallet';
+}
+function headerConnect(net: Net) {
+  const st = document.getElementById('wc-st')!;
+  const uri = session.start(net, (s) => { st.textContent = s === 'connected' ? 'Relay connected. Approve in your wallet...' : s ? `${s.charAt(0).toUpperCase()}${s.slice(1)}...` : 'Waiting for your wallet...'; },
+    () => { showWallet(); wcDlg.close(); render(); }, () => { showWallet(); render(); });
+  QRCode.toCanvas(document.getElementById('wc-qr') as HTMLCanvasElement, uri, { width: 220, margin: 1 });
+  (document.getElementById('wc-open') as HTMLAnchorElement).href = uri;
+}
+const routeNet = (): Net => { try { const p = params().get('p'); return p ? decodePlan(p).net : 'mainnet'; } catch { return 'mainnet'; } };
+wcBtn.addEventListener('click', () => {
+  if (session.wallet) { session.stop(); showWallet(); render(); return; }
+  const net = routeNet(); (document.getElementById('wc-chip') as HTMLInputElement).checked = net === 'chipnet';
+  headerConnect(net); wcDlg.showModal();
+});
+document.getElementById('wc-chip')!.addEventListener('change', (e) => headerConnect((e.target as HTMLInputElement).checked ? 'chipnet' : 'mainnet'));
+document.getElementById('wc-copy')!.addEventListener('click', () => navigator.clipboard?.writeText(session.uri));
+wcDlg.addEventListener('close', () => { if (!session.wallet) session.stop(); });
 const DEMO_MERCHANT = 'bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza';
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const sats = (n: bigint) => `${n.toLocaleString()} sats`;
@@ -198,12 +225,12 @@ function renderPay() {
       <a class="btn" id="open">Open wallet app</a> <button class="btn ghost" id="copy">Copy link</button>
       <p class="muted" id="st">Waiting for your wallet...</p></div></div>`;
     const uri = session.start(plan.net, (s) => { const st = document.getElementById('st'); if (st && s) st.textContent = s === 'connected' ? 'Relay connected. Approve in your wallet...' : /^(approve|wallet)/.test(s) ? s.charAt(0).toUpperCase() + s.slice(1) + '...' : `Relay: ${s}`; },
-      connected, () => connect());
+      (w) => { showWallet(); connected(w); }, () => { showWallet(); connect(); });
     QRCode.toCanvas(document.getElementById('qr') as HTMLCanvasElement, uri, { width: 200, margin: 1 });
     (document.getElementById('open') as HTMLAnchorElement).href = uri;
     document.getElementById('copy')!.addEventListener('click', () => navigator.clipboard?.writeText(uri));
   };
-  connect();
+  if (session.wallet && session.net === plan.net) connected(session.wallet); else connect();
 }
 
 // ---- order status ----------------------------------------------------------
