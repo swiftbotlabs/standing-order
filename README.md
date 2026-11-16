@@ -98,6 +98,15 @@ Standing Order Plus on Bitcoin Cash **mainnet** with real BCH (16 Nov 2026), ord
 
 Reproduce: `node scripts/mainnet_plus.mjs simulate` (offline, VM-checked), then the live steps in `scripts/mainnet_plus.mjs`.
 
+Stablecoin order on **mainnet** (PUSD, a CashToken; 16 Nov 2026), token Standing Order `bitcoincash:r0a8lv0dczfw977g93zvt6kmj26qgesp869ayq0hr3azq3rnuma3y4wxe3m4l`,
+1 PUSD unit (0.01 PUSD) a block, 3 periods prepaid:
+- buy 5 PUSD units on Cauldron (pool redeem script proven from chain, trade VM-checked before broadcast): [9ee16268bd5f93b85f3536b531733d803a020364d4481dbcb949bbd2a6b89413](https://blockchair.com/bitcoin-cash/transaction/9ee16268bd5f93b85f3536b531733d803a020364d4481dbcb949bbd2a6b89413)
+- subscribe (3 PUSD units into the token covenant): [46ef7ca31f76e77361a955d5304f75e77c811fc02dac94ce0303282a014007cc](https://blockchair.com/bitcoin-cash/transaction/46ef7ca31f76e77361a955d5304f75e77c811fc02dac94ce0303282a014007cc)
+- claim (exactly 1 PUSD unit to the merchant, no signature): [8408a375e6221b748bd1dc7f544987be69347579bf26d0afaa6e9458bad6ee9d](https://blockchair.com/bitcoin-cash/transaction/8408a375e6221b748bd1dc7f544987be69347579bf26d0afaa6e9458bad6ee9d)
+- cancel (the 2 remaining PUSD units back to the subscriber): [aa3a8aa6cc382b3178b8fa421420212c8d812acf1d95aeb52c217c71b0971607](https://blockchair.com/bitcoin-cash/transaction/aa3a8aa6cc382b3178b8fa421420212c8d812acf1d95aeb52c217c71b0971607)
+
+Reproduce: `node scripts/mainnet_cauldron_swap.mjs 5 --dry` and `node scripts/mainnet_pusd.mjs fund --dry` (VM-checked, no broadcast).
+
 ## Proven on chipnet (contract logic; these runs predate the per-subscription orderId and the coin-authorized cancel, which change the address and the cancel input only)
 - Early claim refused by the network; claim after one confirmed block paid the merchant exactly 20,000 sats
   (026fb3adafab7578cf0ac187fcd96ce01337e1e465d8cb2facd77cbab6bf20d5); immediate re-claim refused; cancel refunded
