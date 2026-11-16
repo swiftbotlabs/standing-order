@@ -50,6 +50,18 @@ npx --no-install solidhat test     # 77 tests; replay and v2 attacks checked by 
 ```
 Negative tests were proven with planted controls (flipping an expectation turns the suite red).
 
+## Proven on mainnet (real BCH)
+Standing Order Plus on Bitcoin Cash **mainnet** with real BCH (16 Nov 2026), order `bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k`, 10,000 sats a block to the merchant plus a 1,000-sat split payee:
+- subscribe (fund the order): [a813b51e39f81bc541fc9c42faf0a57b0f6ff677f468fc8ee52970a87d2e0efd](https://blockchair.com/bitcoin-cash/transaction/a813b51e39f81bc541fc9c42faf0a57b0f6ff677f468fc8ee52970a87d2e0efd)
+- claim after one block, merchant and split payee paid in one transaction, no signature: [83989cdd83e57dd7d1799f9282a3d77e6622edb324bd364de663bae8d5037aa0](https://blockchair.com/bitcoin-cash/transaction/83989cdd83e57dd7d1799f9282a3d77e6622edb324bd364de663bae8d5037aa0)
+- pause (pays the period in progress, moves the rest to this order's PausedOrder): [57dbfffb83e4bc19b06e1dc46f61ea2c6333aead487bbbde2e732992628df07d](https://blockchair.com/bitcoin-cash/transaction/57dbfffb83e4bc19b06e1dc46f61ea2c6333aead487bbbde2e732992628df07d)
+- resume: [3cfa46b1391f642a0869be9745407eb007ccf14d54d064adaa651e3d98e47b4e](https://blockchair.com/bitcoin-cash/transaction/3cfa46b1391f642a0869be9745407eb007ccf14d54d064adaa651e3d98e47b4e) (an immediate claim right after was refused by the network: the period restarts)
+- top up (anyone may add periods): [f56cc6293c6a81ec4830f123d2333dea4b177ebd0e83eb390b520eba2fe4f68e](https://blockchair.com/bitcoin-cash/transaction/f56cc6293c6a81ec4830f123d2333dea4b177ebd0e83eb390b520eba2fe4f68e)
+- second claim: [bcbd439c8357f70c811926979fc3f91b564aa4b04f1b693565d31578f4b6a7e3](https://blockchair.com/bitcoin-cash/transaction/bcbd439c8357f70c811926979fc3f91b564aa4b04f1b693565d31578f4b6a7e3)
+- cancel (remainder back to the subscriber, no signature, coin-authorized): [a68c39cb4df5e71eb7d3e3f2ecddc70c4569ffdc8f70192f113b8dfbb81ce9f9](https://blockchair.com/bitcoin-cash/transaction/a68c39cb4df5e71eb7d3e3f2ecddc70c4569ffdc8f70192f113b8dfbb81ce9f9)
+
+Reproduce: `node scripts/mainnet_plus.mjs simulate` (offline, VM-checked), then the live steps in `scripts/mainnet_plus.mjs`.
+
 ## Proven on chipnet (contract logic; these runs predate the per-subscription orderId and the coin-authorized cancel, which change the address and the cancel input only)
 - Early claim refused by the network; claim after one confirmed block paid the merchant exactly 20,000 sats
   (026fb3adafab7578cf0ac187fcd96ce01337e1e465d8cb2facd77cbab6bf20d5); immediate re-claim refused; cancel refunded
