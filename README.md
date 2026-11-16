@@ -1,5 +1,7 @@
 # Standing Order
 
+[![solidhat tests](https://img.shields.io/badge/solidhat%20tests-77%20passing-2ea44f)](#tests) [![mainnet](https://img.shields.io/badge/mainnet-full%20lifecycle%20proven-0ac18e)](#proven-on-mainnet-real-bch) [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 **Subscriptions that pay themselves, on Bitcoin Cash.** Live: https://standing-order.swiftbotlab.workers.dev/
 
 A subscriber funds a standing order once. The merchant can take one period's amount per period, never more and never
@@ -37,6 +39,31 @@ first: pausing, resuming or topping up can never keep the merchant waiting. Soli
 `modifier`, `internal` functions (OP_DEFINE / OP_INVOKE subroutines), a `bytes constant` template, `require` messages,
 `LockingBytecodeP2SH32` + `hash256` covenant construction, `this.age`, token introspection (`tokenCategory == 0x`).
 Sizes: 1,005 bytes (order) and 274 bytes (paused) with their arguments; v2 claims allow up to 2,000 sats of fee.
+
+## Built in the BLAZE window (14-22 Nov) vs. before kick-off
+The tag `pre-kickoff` (14 Nov, 13:35 UTC, before the 14:00 UTC start) is the base; everything below it is new in the window.
+
+| Part | Before kick-off (`pre-kickoff`) | In the window |
+|---|---|---|
+| Contracts | `StandingOrder` (BCH) and `StandingOrderToken` (CashTokens): claim one period per period, cancel | **`StandingOrderPlus` + `PausedOrder`**: split payee, pause/resume, top up, two-party plan change, on-chain computed paused address, token-poisoning and clock-reset guards |
+| Tests | 35 solidhat tests (v1 + replay attacks) | **+42 tests** (`standing_order_plus.test.ts` 33 incl. VM-verified pause, resume, claim round trip; `review_v2.test.ts` 9 VM regressions for the v2 review findings); planted controls for every guard |
+| Proof | chipnet runs of v1 | **mainnet**: the whole Plus lifecycle with real BCH (below); chipnet web-code e2e of Plus |
+| Dapp + relayer | v1 pay links, subscribe, cancel, keyless relayer | v2 pay links with split, Pause / Resume / Add a period on the order page, cancel from paused, relayer claims v2 and waits out BIP68 holds, 14 Nov banner |
+| Upstream SolidCash | PR [#1](https://github.com/solidcash/solidcash/pull/1) (WalletConnect covered bytecode) | issue [#2](https://github.com/solidcash/solidcash/issues/2): five findings with reproductions; the first follow-up PR (findings 1-3: example pragmas, awaited matchers, docs) is ready and opens once #1 is reviewed (one open PR at a time) |
+| Security | two reviews of v1 | a third review of v2: no theft path; four weaknesses fixed, each with a regression test |
+| Media | deck | the 2-minute demo film on the home page |
+
+## SolidCash features, where they are used
+| Feature | Where |
+|---|---|
+| `internal` functions (OP_DEFINE / OP_INVOKE subroutines) | [`signedBy`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L33), [`paysOnePeriod`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L44) |
+| custom `modifier` | [`onlySubscriber` in StandingOrderPlus](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L57), [in PausedOrder](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/paused_order.scash#L18) |
+| `bytes constant` / `int constant` | [`PAUSED_TEMPLATE`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L30), [`MAX_FEE`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/paused_order.scash#L15) |
+| relative timelock `this.age` | [`claim()`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L64) |
+| covenant construction `LockingBytecodeP2SH32(hash256(...))` | [`pause()` computes its own paused address](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L100), [`resume()` only back to its order](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/paused_order.scash#L33), [`changePlan()`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L121) |
+| token introspection (`tokenCategory`) | [no token may ride on the order coin](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L87); fungible-token plans in [`standing_order_token.scash`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_token.scash) |
+| `require` messages | throughout, e.g. [`"one claim per period"`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L64) |
+| solidhat (`solidcash.config.mjs`, `solidhat test`) | [`test/`](https://github.com/swiftbotlabs/standing-order/blob/main/test) - 77 tests |
 
 ## Contracts (SolidCash), v1
 - `contracts/standing_order.scash` (BCH): `claim()` / `cancel()`, 277 bytes with its arguments.
