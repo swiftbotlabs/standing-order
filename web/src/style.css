@@ -92,3 +92,8 @@ dialog#wc-dlg form { margin-top: 12px; text-align: right; }
 label.inline { display: inline-flex; gap: 6px; align-items: center; }
 label.inline input { width: auto; margin: 0; }
 @media (max-width: 520px) { .topr nav { order: 2; } .btn.wc { order: 1; } }
+
+/* network label next to the brand: mainnet by default, chipnet clearly marked */
+.brandrow { display: flex; align-items: center; gap: 10px; }
+.netpill { font-size: 12px; font-weight: 700; letter-spacing: .02em; padding: 3px 9px; border-radius: 999px; background: var(--brand); color: var(--brand-ink); white-space: nowrap; }
+.netpill.chip { background: #b7791f; color: #fff; }

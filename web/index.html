@@ -17,7 +17,7 @@
     <span>EMBER2026 votes: <code id="bn-addr">bitcoincash:zpgquneyckvcchup87e8ts7zljkc6aks4yalmfcay8</code></span>
   </div>
   <header class="top">
-    <a href="#/" class="brand"><span class="mark" aria-hidden="true">⟳</span> Standing Order</a>
+    <div class="brandrow"><a href="#/" class="brand"><span class="mark" aria-hidden="true">⟳</span> Standing Order</a> <span class="netpill" id="netpill" title="Network this page uses">Mainnet</span></div>
     <div class="topr"><nav><a href="#/new">Create a pay link</a> · <a href="#/merchant">Merchants</a></nav>
       <button class="btn primary wc" id="wc-btn" type="button">Connect wallet</button></div>
   </header>
@@ -28,7 +28,7 @@
     <div class="connect"><canvas id="wc-qr"></canvas><div>
       <a class="btn" id="wc-open">Open wallet app</a> <button class="btn ghost" id="wc-copy" type="button">Copy link</button>
       <p class="muted" id="wc-st">Waiting for your wallet...</p>
-      <label class="inline small"><input type="checkbox" id="wc-chip" /> chipnet (test coins)</label></div></div>
+      <p class="small"><b>Network:</b> <span id="wc-net">Mainnet (real BCH)</span> · <label class="inline small"><input type="checkbox" id="wc-chip" /> use chipnet (test coins) instead</label></p></div></div>
     <form method="dialog"><button class="btn ghost" type="submit">Close</button></form>
   </dialog>
   <footer class="foot">

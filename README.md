@@ -11,6 +11,27 @@ that only enforces those rules. Plans can be priced in BCH or in a CashToken sta
 Built for BCH BLAZE 2026 (Mainnet track, SolidCash bounty). Started on 14 Nov 2026, a few hours before the 14:00 UTC
 kick-off; the tag `pre-kickoff` marks the state at kick-off.
 
+## For judges: one minute
+- **Try it:** open https://standing-order.swiftbotlab.workers.dev/ (it opens on **mainnet**, labelled beside the logo), press
+  **Connect wallet** at the top right (WizardConnect: Selene, Paytaca, Cashonize), then **Try it: 1 cent a block**. Chipnet pages
+  are marked "Chipnet · test coins".
+- **Watch it:** the 2-minute film on the home page (real chipnet flow; a real Paytaca sign request).
+- **Proof on mainnet:** subscribe, split claim, pause, resume, top up, claim, cancel with real BCH, txids [below](#proven-on-mainnet-real-bch).
+- **What is new in the BLAZE window:** Standing Order Plus (v2 covenant) + 42 tests + a third security review, [table](#built-in-the-blaze-window-14-22-nov-vs-before-kick-off).
+- **SolidCash features, each linked to its line:**
+
+| Feature | Where |
+|---|---|
+| `internal` functions (OP_DEFINE / OP_INVOKE subroutines) | [`signedBy`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L33), [`paysOnePeriod`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L44) |
+| custom `modifier` | [`onlySubscriber` in StandingOrderPlus](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L57), [in PausedOrder](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/paused_order.scash#L18) |
+| `bytes constant` / `int constant` | [`PAUSED_TEMPLATE`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L30), [`MAX_FEE`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/paused_order.scash#L15) |
+| relative timelock `this.age` | [`claim()`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L64) |
+| covenant construction `LockingBytecodeP2SH32(hash256(...))` | [`pause()` computes its own paused address](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L100), [`resume()` only back to its order](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/paused_order.scash#L33), [`changePlan()`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L121) |
+| token introspection (`tokenCategory`) | [no token may ride on the order coin](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L87); fungible-token plans in [`standing_order_token.scash`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_token.scash) |
+| `require` messages | throughout, e.g. [`"one claim per period"`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L64) |
+| solidhat (`solidcash.config.mjs`, `solidhat test`) | [`test/`](https://github.com/swiftbotlabs/standing-order/blob/main/test) - 77 tests |
+
+
 ## How it works
 
 | Step | Who | What happens on chain |
@@ -52,18 +73,6 @@ The tag `pre-kickoff` (14 Nov, 13:35 UTC, before the 14:00 UTC start) is the bas
 | Upstream SolidCash | PR [#1](https://github.com/solidcash/solidcash/pull/1) (WalletConnect covered bytecode) | issue [#2](https://github.com/solidcash/solidcash/issues/2): five findings with reproductions; the first follow-up PR (findings 1-3: example pragmas, awaited matchers, docs) is ready and opens once #1 is reviewed (one open PR at a time) |
 | Security | two reviews of v1 | a third review of v2: no theft path; four weaknesses fixed, each with a regression test |
 | Media | deck | the 2-minute demo film on the home page |
-
-## SolidCash features, where they are used
-| Feature | Where |
-|---|---|
-| `internal` functions (OP_DEFINE / OP_INVOKE subroutines) | [`signedBy`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L33), [`paysOnePeriod`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L44) |
-| custom `modifier` | [`onlySubscriber` in StandingOrderPlus](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L57), [in PausedOrder](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/paused_order.scash#L18) |
-| `bytes constant` / `int constant` | [`PAUSED_TEMPLATE`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L30), [`MAX_FEE`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/paused_order.scash#L15) |
-| relative timelock `this.age` | [`claim()`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L64) |
-| covenant construction `LockingBytecodeP2SH32(hash256(...))` | [`pause()` computes its own paused address](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L100), [`resume()` only back to its order](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/paused_order.scash#L33), [`changePlan()`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L121) |
-| token introspection (`tokenCategory`) | [no token may ride on the order coin](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L87); fungible-token plans in [`standing_order_token.scash`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_token.scash) |
-| `require` messages | throughout, e.g. [`"one claim per period"`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L64) |
-| solidhat (`solidcash.config.mjs`, `solidhat test`) | [`test/`](https://github.com/swiftbotlabs/standing-order/blob/main/test) - 77 tests |
 
 ## Contracts (SolidCash), v1
 - `contracts/standing_order.scash` (BCH): `claim()` / `cancel()`, 277 bytes with its arguments.

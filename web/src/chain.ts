@@ -17,7 +17,7 @@ export const MAX_FEE = 1_000n;          // the most a claim / cancel may pay min
 export const DUST = 800n;               // never leave an output below this
 
 export interface TokenSpec { category: string; symbol: string; decimals: number }   // category in wallet/display byte order
-export const PUSD: TokenSpec = { category: '2469acc5afa4b10cb5b5c04afb89c3a3ffd61c5da9c01e26d00951cae2a02544', symbol: 'PUSD', decimals: 2 }; // decimals: TO VERIFY (BCMR)
+export const PUSD: TokenSpec = { category: '2469acc5afa4b10cb5b5c04afb89c3a3ffd61c5da9c01e26d00951cae2a02544', symbol: 'PUSD', decimals: 2 }; // decimals 2 verified in its BCMR (Paytaca indexer, 2026-11-17)
 export const TOKEN_SATS_PER_PERIOD = DUST + MAX_FEE;   // BCH the token order keeps for each claim (dust to merchant + fee)
 
 export interface Split { to: string; amount: bigint }   // a second payee each period (co-creator, affiliate, platform)

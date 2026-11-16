@@ -30,9 +30,14 @@ const routeNet = (): Net => { try { const p = params().get('p'); return p ? deco
 wcBtn.addEventListener('click', () => {
   if (session.wallet) { session.stop(); showWallet(); render(); return; }
   const net = routeNet(); (document.getElementById('wc-chip') as HTMLInputElement).checked = net === 'chipnet';
+  document.getElementById('wc-net')!.textContent = net === 'chipnet' ? 'Chipnet (test coins)' : 'Mainnet (real BCH)';
   headerConnect(net); wcDlg.showModal();
 });
-document.getElementById('wc-chip')!.addEventListener('change', (e) => headerConnect((e.target as HTMLInputElement).checked ? 'chipnet' : 'mainnet'));
+document.getElementById('wc-chip')!.addEventListener('change', (e) => {
+  const chip = (e.target as HTMLInputElement).checked;
+  document.getElementById('wc-net')!.textContent = chip ? 'Chipnet (test coins)' : 'Mainnet (real BCH)';
+  headerConnect(chip ? 'chipnet' : 'mainnet');
+});
 document.getElementById('wc-copy')!.addEventListener('click', () => navigator.clipboard?.writeText(session.uri));
 wcDlg.addEventListener('close', () => { if (!session.wallet) session.stop(); });
 const DEMO_MERCHANT = 'bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza';
@@ -46,7 +51,13 @@ function demoPlan(net: Net): Plan {
   return { v: 2, net, merchant: DEMO_MERCHANT, amount: 5_000n, period: 1, periods: 3, label: 'Standing Order demo (about 1 cent a block)' };
 }
 
+function showNet() {
+  const net = routeNet(), pill = document.getElementById('netpill')!;
+  pill.textContent = net === 'chipnet' ? 'Chipnet · test coins' : 'Mainnet';
+  pill.classList.toggle('chip', net === 'chipnet');
+}
 function render() {
+  showNet();
   const route = location.hash.split('?')[0] || '#/';
   if (route === '#/new') return renderNew();
   if (route === '#/pay') return renderPay();
