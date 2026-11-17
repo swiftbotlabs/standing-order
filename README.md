@@ -100,7 +100,9 @@ Sizes: 1,005 bytes (order) and 274 bytes (paused) with their arguments; v2 claim
 [`pool/`](pool/) keeps every subscriber of a plan in one stateful covenant instead of one coin per subscription: a verified
 mapping is the on-chain subscriber register, a covenant loop collects up to 16 members in one transaction with one payout to the
 merchant, a catch-up collects missed periods, deposits sit in the satoshi container, an absolute timelock (`tx.time`) sets each
-member's due block, and `withdraw` / `leave` can only pay the member back (`tx.origin` + `checkSig`). 11 tests, 10 planted controls,
+member's due block, and `withdraw` / `leave` can only pay the member back (`tx.origin` + `checkSig`). **Key loss** (v2): each member names
+a recovery address; if they lose their key, the merchant can release their unspent periods only to that address. Syntax used besides:
+a `library`, an `enum` in an event, an `abstract contract` base, custom `error`s with `revert`. 14 tests, 14 planted controls,
 and a full run on **mainnet** (deploy, two members, a two-member collect, a catch-up, a withdraw, a leave; a collect tried before
 the next period was refused): [txids](pool/README.md#on-mainnet).
 

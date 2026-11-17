@@ -1,0 +1,120 @@
+pragma solidcash ^0.51.0;
+// v1 as deployed and run on mainnet on 17 Nov 2026 (pool_mainnet.json / pool_mainnet.log). The current pool is ../standing_order_pool.scash.
+
+// Standing Order Pool: one stateful covenant per merchant plan that keeps every subscriber's budget.
+//
+// v1/v2 give each subscription its own covenant coin. The pool keeps one register for a plan instead:
+//   - a verified mapping `members` (subscriber pkh -> packed record), the subscriber registry, on chain;
+//   - the budgets in the pool's satoshi container;
+//   - `collect` pays the merchant for up to 16 due members in ONE transaction (a covenant loop over a verified
+//     mapping), so a merchant with many members pays one fee per round; `periods` > 1 catches up members who
+//     are behind.
+// Record = nextDue * 65536 + periodsLeft: the block height from which the next period may be taken, and how many
+// prepaid periods remain (budget = periodsLeft * price, so a budget is always whole periods).
+//
+// What the covenant guarantees for every member:
+//   - the merchant is paid `price` at most once per `period` blocks per member, never early (tx.time >= nextDue,
+//     a CLTV check on nLockTime: no node accepts the tx before that height);
+//   - collected sats go only to the merchant's P2PKH; nobody can redirect a payment;
+//   - anyone can call `collect` (merchant, relayer, the member), the outcome is fixed;
+//   - only the member can `withdraw` (a coin of their own address must be spent in the same tx); every unspent
+//     period can come back to them, and taking all of them ends the membership.
+contract StandingOrderPool(bytes20 merchant, int price, int period) {
+    mapping(bytes20 => int) public members;
+    int public memberCount;
+    int public paidTotal;
+
+    event Subscribed(bytes20 indexed subscriber, int periods, int nextDue);
+    event Collected(int count, int amount);
+    event Withdrawn(bytes20 indexed subscriber, int refund);
+
+    modifier validPlan() {
+        require(price >= 1000, "price below 1000 sats");
+        require(period >= 1 && period <= 52560, "period out of range");   // up to about a year of blocks
+        _;
+    }
+
+    // Join: deposit whole periods into the pool. The first period is due at `start`, a height the chain has
+    // already reached (CLTV), so the merchant (or anyone) can collect it at once; then one per `period` blocks.
+    function subscribe(bytes20 subscriber, int start) payable validPlan {
+        require(this.members[subscriber] == 0, "already a member");
+        require(start > 0 && start < 500000000, "start must be a block height");
+        require(tx.time >= start, "start is in the future");
+        int deposit = msg.value;
+        require(deposit >= price && deposit % price == 0, "deposit must be whole periods");
+        int periods = deposit / price;
+        require(periods < 65536, "too many periods");
+        this.members[subscriber] = start * 65536 + periods;
+        this.memberCount = this.memberCount + 1;
+        emit Subscribed(subscriber, periods, start);
+    }
+
+    // Add whole periods to a member's budget (anyone may pay for someone).
+    function topUp(bytes20 subscriber) payable {
+        int rec = this.members[subscriber];
+        require(rec > 0, "not a member");
+        int deposit = msg.value;
+        require(deposit > 0 && deposit % price == 0, "deposit must be whole periods");
+        require(rec % 65536 + deposit / price < 65536, "too many periods");
+        this.members[subscriber] = rec + deposit / price;
+    }
+
+    // Take `periods` periods from each listed member (1 = the normal round; more = catch-up for members who are
+    // behind), one payout to the merchant. `due` is a height the chain has reached (CLTV); every listed member's
+    // last taken period must be due by then.
+    function collect(bytes20[] memory subscribers, int due, int periods) {
+        require(subscribers.length >= 1 && subscribers.length <= 16, "1 to 16 members per collect");
+        require(periods >= 1 && periods <= 12, "1 to 12 periods per collect");
+        require(due > 0 && due < 500000000, "due must be a block height");
+        require(tx.time >= due, "not due yet");
+        int step = periods * (period * 65536 - 1);   // nextDue moves `periods` periods on, `periods` fewer left
+        int lastOffset = (periods - 1) * period;
+        int total = 0;
+        for (int i = 0; i < subscribers.length; i++) {
+            // Strictly increasing keys, so no member is listed twice (paid twice on one record read). The key is read as a
+            // positive script number (0x01 appended as the top byte keeps it minimally encoded for any key); the order is
+            // the key's bytes compared from the last one.
+            require(i == 0 || unsafe_int(subscribers[i] + 0x01) > unsafe_int(subscribers[i - 1] + 0x01), "list members in ascending order, once each");
+            int rec = this.members[subscribers[i]];
+            require(rec > 0, "not a member");
+            require(rec % 65536 >= periods, "not enough prepaid periods");
+            require(rec / 65536 + lastOffset <= due, "member not due");
+            this.members[subscribers[i]] += step;
+            total = total + periods * price;
+        }
+        this.paidTotal = this.paidTotal + total;
+        this.transfer(new LockingBytecodeP2PKH(merchant), total);
+        emit Collected(subscribers.length, total);
+    }
+
+    // Withdraw `periods` unspent periods; withdrawing all of them ends the membership (record deleted). Only the
+    // member: a coin of their own address must be the first P2PKH input (tx.origin). A large refund can be taken in
+    // parts, so it never depends on one pool coin being big enough (every pool coin is a whole number of periods).
+    function withdraw(bytes20 subscriber, int periods) {
+        require(tx.origin == new LockingBytecodeP2PKH(subscriber), "only the member can withdraw");
+        int rec = this.members[subscriber];
+        require(rec > 0, "not a member");
+        int left = rec % 65536;
+        require(periods >= 1 && periods <= left, "bad number of periods");
+        if (periods == left) {
+            delete this.members[subscriber];
+            this.memberCount = this.memberCount - 1;
+        } else {
+            this.members[subscriber] = rec - periods;
+        }
+        this.transfer(new LockingBytecodeP2PKH(subscriber), periods * price);
+        emit Withdrawn(subscriber, periods * price);
+    }
+
+    // A member whose prepaid periods are all used up ends the membership (record deleted). Only the member, by
+    // signature (this call moves no money, so it is authorised by the member's key rather than a coin).
+    function leave(bytes20 subscriber, pubkey pk, sig s) {
+        require(hash160(pk) == subscriber, "only the member can leave");
+        require(checkSig(s, pk), "bad signature");
+        int rec = this.members[subscriber];
+        require(rec > 0, "not a member");
+        require(rec % 65536 == 0, "withdraw the prepaid periods instead");
+        delete this.members[subscriber];
+        this.memberCount = this.memberCount - 1;
+    }
+}

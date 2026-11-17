@@ -29,10 +29,18 @@ const outcome = (p: Promise<unknown>) => p.then(() => 'accepted', (e: any) => St
 const height = (ctx: Ctx) => ctx.provider.getBlockHeight();
 const sats = async (ctx: Ctx, s: any) => (await ctx.provider.getUtxos(s.getAddress())).filter((u: any) => !u.token).reduce((n: bigint, u: any) => n + u.satoshis, 0n);
 const rec = async (ctx: Ctx, s: any) => BigInt(await ctx.pool.members(pkh(s)));
-const subscribe = async (ctx: Ctx, s: any, periods: bigint, by = s) => {
+// every member names a recovery address (a backup wallet of theirs); by default carol's address stands in for it
+const subscribe = async (ctx: Ctx, s: any, periods: bigint, by = s, recovery = ctx.carol) => {
   const h = BigInt(await height(ctx));
-  return ctx.pool.connect(by).call.subscribe(pkh(s), h).withValue(periods * PRICE).setLocktime(Number(h)).send();
+  return ctx.pool.connect(by).call.subscribe(pkh(s), pkh(recovery), h).withValue(periods * PRICE).setLocktime(Number(h)).send();
 };
+const release = (ctx: Ctx, signer: any, who: any, periods: bigint, transfer?: [Uint8Array, bigint]) => {
+  let c = ctx.pool.connect(signer).call.release(pkh(who), periods, signer.publicKey, new SignatureTemplate(signer.privateKey));
+  if (transfer) c = c.transfer(transfer[0], transfer[1]);
+  return c.send();
+};
+const setRecovery = (ctx: Ctx, signer: any, who: any, recovery: any) =>
+  ctx.pool.connect(signer).call.setRecovery(pkh(who), pkh(recovery), signer.publicKey, new SignatureTemplate(signer.privateKey)).send();
 // `locktime` = the tx's nLockTime (what the chain has reached, from the covenant's view); `transfer` = a manual
 // (attacker-chosen) payout instead of the SDK-derived one
 const collect = (ctx: Ctx, by: any, list: any[], due: bigint, locktime = Number(due), transfer?: [Uint8Array, bigint], periods = 1n, ordered = true) =>
@@ -60,9 +68,9 @@ describe('StandingOrderPool: join', () => {
     await subscribe(ctx, ctx.alice, 2n);
     expect(await outcome(subscribe(ctx, ctx.alice, 1n))).not.toBe('accepted');
     const h = BigInt(await height(ctx));
-    expect(await outcome(ctx.pool.connect(ctx.bob).call.subscribe(pkh(ctx.bob), h).withValue(PRICE + 1n).setLocktime(Number(h)).send())).not.toBe('accepted');
-    expect(await outcome(ctx.pool.connect(ctx.bob).call.subscribe(pkh(ctx.bob), h).withValue(PRICE / 2n).setLocktime(Number(h)).send())).not.toBe('accepted');
-    expect(await outcome(ctx.pool.connect(ctx.bob).call.subscribe(pkh(ctx.bob), h + 50n).withValue(PRICE).setLocktime(Number(h)).send())).not.toBe('accepted');
+    expect(await outcome(ctx.pool.connect(ctx.bob).call.subscribe(pkh(ctx.bob), pkh(ctx.carol), h).withValue(PRICE + 1n).setLocktime(Number(h)).send())).not.toBe('accepted');
+    expect(await outcome(ctx.pool.connect(ctx.bob).call.subscribe(pkh(ctx.bob), pkh(ctx.carol), h).withValue(PRICE / 2n).setLocktime(Number(h)).send())).not.toBe('accepted');
+    expect(await outcome(ctx.pool.connect(ctx.bob).call.subscribe(pkh(ctx.bob), pkh(ctx.carol), h + 50n).withValue(PRICE).setLocktime(Number(h)).send())).not.toBe('accepted');
     expect(await outcome(subscribe(ctx, ctx.bob, 1n))).toBe('accepted');   // control: the honest call passes
     expect((await ctx.pool.getState()).memberCount).toBe(2n);
   });
@@ -198,5 +206,46 @@ describe('StandingOrderPool: membership end', () => {
     expect(await outcome(leave(ctx, ctx.alice, ctx.alice))).toBe('accepted');
     expect(await rec(ctx, ctx.alice)).toBe(0n);
     expect((await ctx.pool.getState()).memberCount).toBe(0n);
+  });
+});
+
+describe('StandingOrderPool: key loss (recovery address)', () => {
+  it("the merchant can release a member's unspent periods only to the member's recovery address, in parts", async () => {
+    const ctx = await setup();
+    await subscribe(ctx, ctx.carol, 6n);                               // a big coin in the pool, so only the rule can refuse
+    await subscribe(ctx, ctx.alice, 3n, ctx.alice, ctx.bob);          // alice names bob's address as her backup wallet
+    expect(binToHex(await ctx.pool.recoveryOf(pkh(ctx.alice)))).toBe(binToHex(pkh(ctx.bob)));
+    const b0 = await sats(ctx, ctx.bob);
+    expect(await outcome(release(ctx, ctx.merchant, ctx.alice, 1n))).toBe('accepted');
+    expect(await sats(ctx, ctx.bob) - b0).toBe(PRICE);
+    expect((await rec(ctx, ctx.alice)) % K).toBe(2n);
+    expect(await outcome(release(ctx, ctx.merchant, ctx.alice, 3n))).not.toBe('accepted');          // only 2 left
+    expect(await outcome(release(ctx, ctx.merchant, ctx.alice, 2n))).toBe('accepted');              // the rest ends the membership
+    expect(await sats(ctx, ctx.bob) - b0).toBe(3n * PRICE);
+    expect(await rec(ctx, ctx.alice)).toBe(0n);
+    expect((await ctx.pool.getState()).memberCount).toBe(1n);                                      // carol stays
+    expect(await ctx.pool.satoshiContainer.getBalance()).toBe(BASE + 6n * PRICE);                // carol's budget untouched
+  });
+
+  it('nobody but the merchant can release, and a release cannot be redirected', async () => {
+    const ctx = await setup();
+    await subscribe(ctx, ctx.alice, 2n, ctx.alice, ctx.bob);
+    expect(await outcome(release(ctx, ctx.mallory, ctx.alice, 1n))).not.toBe('accepted');           // a stranger's key
+    expect(await outcome(release(ctx, ctx.alice, ctx.alice, 1n))).not.toBe('accepted');             // the member's own key is not the merchant's
+    expect(await outcome(release(ctx, ctx.merchant, ctx.alice, 1n, [ctx.merchant.getLockingBytecode(), PRICE]))).not.toBe('accepted');
+    expect(await outcome(release(ctx, ctx.merchant, ctx.alice, 1n, [ctx.mallory.getLockingBytecode(), PRICE]))).not.toBe('accepted');
+    expect(await outcome(release(ctx, ctx.merchant, ctx.alice, 1n, [ctx.bob.getLockingBytecode(), PRICE]))).toBe('accepted'); // control
+  });
+
+  it('only the member can change the recovery address; a release then follows the new address', async () => {
+    const ctx = await setup();
+    await subscribe(ctx, ctx.alice, 2n, ctx.alice, ctx.bob);
+    expect(await outcome(setRecovery(ctx, ctx.mallory, ctx.alice, ctx.mallory))).not.toBe('accepted');
+    expect(await outcome(setRecovery(ctx, ctx.merchant, ctx.alice, ctx.merchant))).not.toBe('accepted');
+    expect(await outcome(setRecovery(ctx, ctx.alice, ctx.alice, ctx.carol))).toBe('accepted');
+    expect(binToHex(await ctx.pool.recoveryOf(pkh(ctx.alice)))).toBe(binToHex(pkh(ctx.carol)));
+    const c0 = await sats(ctx, ctx.carol);
+    expect(await outcome(release(ctx, ctx.merchant, ctx.alice, 2n))).toBe('accepted');
+    expect(await sats(ctx, ctx.carol) - c0).toBe(2n * PRICE);
   });
 });

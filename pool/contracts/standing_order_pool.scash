@@ -18,8 +18,36 @@ pragma solidcash ^0.51.0;
 //   - anyone can call `collect` (merchant, relayer, the member), the outcome is fixed;
 //   - only the member can `withdraw` (a coin of their own address must be spent in the same tx); every unspent
 //     period can come back to them, and taking all of them ends the membership.
-contract StandingOrderPool(bytes20 merchant, int price, int period) {
+//   - key loss: each member names a recovery address when joining (their own backup wallet; it can be changed by the
+//     member's signature). If the member loses their key, the merchant can `release` the unspent periods, but only to
+//     that recovery address: the merchant gives up income and can never take a member's money for themselves.
+
+// The packed member record: nextDue * 65536 + periodsLeft.
+library PoolRecord {
+    function pack(int nextDue, int periodsLeft) internal pure returns (int) { return nextDue * 65536 + periodsLeft; }
+    function nextDue(int rec) internal pure returns (int) { return rec / 65536; }
+    function periodsLeft(int rec) internal pure returns (int) { return rec % 65536; }
+}
+
+// Every change to a membership, in one event the merchant's books can follow.
+enum Move { Subscribed, ToppedUp, Withdrawn, Released, RecoveryChanged, Left }
+
+// What every pool plan shares: its errors, its membership event, and the whole-periods rule for deposits.
+abstract contract PoolTerms {
+    error NotAMember(bytes20 member);
+    error NotTheMerchant(bytes20 signer);
+    error BadPeriods(int periods, int left);
+    event MemberMoved(bytes20 indexed member, Move move, int amount);
+
+    modifier wholePeriods(int deposit, int unit) {
+        require(deposit > 0 && deposit % unit == 0, "deposit must be whole periods");
+        _;
+    }
+}
+
+contract StandingOrderPool(bytes20 merchant, int price, int period) is PoolTerms {
     mapping(bytes20 => int) public members;
+    mapping(bytes20 => bytes20) public recoveryOf;
     int public memberCount;
     int public paidTotal;
 
@@ -35,7 +63,7 @@ contract StandingOrderPool(bytes20 merchant, int price, int period) {
 
     // Join: deposit whole periods into the pool. The first period is due at `start`, a height the chain has
     // already reached (CLTV), so the merchant (or anyone) can collect it at once; then one per `period` blocks.
-    function subscribe(bytes20 subscriber, int start) payable validPlan {
+    function subscribe(bytes20 subscriber, bytes20 recovery, int start) payable validPlan {
         require(this.members[subscriber] == 0, "already a member");
         require(start > 0 && start < 500000000, "start must be a block height");
         require(tx.time >= start, "start is in the future");
@@ -43,19 +71,21 @@ contract StandingOrderPool(bytes20 merchant, int price, int period) {
         require(deposit >= price && deposit % price == 0, "deposit must be whole periods");
         int periods = deposit / price;
         require(periods < 65536, "too many periods");
-        this.members[subscriber] = start * 65536 + periods;
+        this.members[subscriber] = PoolRecord.pack(start, periods);
+        this.recoveryOf[subscriber] = recovery;
         this.memberCount = this.memberCount + 1;
         emit Subscribed(subscriber, periods, start);
+        emit MemberMoved(subscriber, Move.Subscribed, deposit);
     }
 
     // Add whole periods to a member's budget (anyone may pay for someone).
-    function topUp(bytes20 subscriber) payable {
+    function topUp(bytes20 subscriber) payable wholePeriods(msg.value, price) {
         int rec = this.members[subscriber];
-        require(rec > 0, "not a member");
+        if (rec == 0) revert NotAMember(subscriber);
         int deposit = msg.value;
-        require(deposit > 0 && deposit % price == 0, "deposit must be whole periods");
-        require(rec % 65536 + deposit / price < 65536, "too many periods");
+        require(PoolRecord.periodsLeft(rec) + deposit / price < 65536, "too many periods");
         this.members[subscriber] = rec + deposit / price;
+        emit MemberMoved(subscriber, Move.ToppedUp, deposit);
     }
 
     // Take `periods` periods from each listed member (1 = the normal round; more = catch-up for members who are
@@ -93,16 +123,48 @@ contract StandingOrderPool(bytes20 merchant, int price, int period) {
         require(tx.origin == new LockingBytecodeP2PKH(subscriber), "only the member can withdraw");
         int rec = this.members[subscriber];
         require(rec > 0, "not a member");
-        int left = rec % 65536;
+        int left = PoolRecord.periodsLeft(rec);
         require(periods >= 1 && periods <= left, "bad number of periods");
         if (periods == left) {
             delete this.members[subscriber];
+            delete this.recoveryOf[subscriber];
             this.memberCount = this.memberCount - 1;
         } else {
             this.members[subscriber] = rec - periods;
         }
         this.transfer(new LockingBytecodeP2PKH(subscriber), periods * price);
         emit Withdrawn(subscriber, periods * price);
+        emit MemberMoved(subscriber, Move.Withdrawn, periods * price);
+    }
+
+    // The member points their recovery address at another wallet of theirs (by signature: no money moves).
+    function setRecovery(bytes20 subscriber, bytes20 recovery, pubkey pk, sig s) {
+        require(hash160(pk) == subscriber, "only the member can change the recovery address");
+        require(checkSig(s, pk), "bad signature");
+        if (this.members[subscriber] == 0) revert NotAMember(subscriber);
+        this.recoveryOf[subscriber] = recovery;
+        emit MemberMoved(subscriber, Move.RecoveryChanged, 0);
+    }
+
+    // Key-loss path: the merchant (by signature) releases `periods` unspent periods of a member to the member's
+    // recovery address, never anywhere else. Releasing all of them ends the membership. In parts, like withdraw.
+    function release(bytes20 subscriber, int periods, pubkey mpk, sig ms) {
+        if (hash160(mpk) != merchant) revert NotTheMerchant(hash160(mpk));
+        require(checkSig(ms, mpk), "bad signature");
+        int rec = this.members[subscriber];
+        if (rec == 0) revert NotAMember(subscriber);
+        int left = PoolRecord.periodsLeft(rec);
+        if (periods < 1 || periods > left) revert BadPeriods(periods, left);
+        bytes20 recovery = this.recoveryOf[subscriber];
+        if (periods == left) {
+            delete this.members[subscriber];
+            delete this.recoveryOf[subscriber];
+            this.memberCount = this.memberCount - 1;
+        } else {
+            this.members[subscriber] = rec - periods;
+        }
+        this.transfer(new LockingBytecodeP2PKH(recovery), periods * price);
+        emit MemberMoved(subscriber, Move.Released, periods * price);
     }
 
     // A member whose prepaid periods are all used up ends the membership (record deleted). Only the member, by
@@ -114,6 +176,8 @@ contract StandingOrderPool(bytes20 merchant, int price, int period) {
         require(rec > 0, "not a member");
         require(rec % 65536 == 0, "withdraw the prepaid periods instead");
         delete this.members[subscriber];
+        delete this.recoveryOf[subscriber];
         this.memberCount = this.memberCount - 1;
+        emit MemberMoved(subscriber, Move.Left, 0);
     }
 }

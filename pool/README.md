@@ -13,6 +13,11 @@ One stateful covenant per merchant plan that keeps every subscriber's budget, in
 | `tx.origin` (the first standard P2PKH input) | `withdraw`: the member's own coin must be spent in the same transaction |
 | `checkSig` + `hash160` | `leave` |
 | `unsafe_int` ordering check | `collect`: members listed in ascending key order, so nobody is listed (and paid for) twice |
+| `library` with `internal pure` functions | `PoolRecord.pack / nextDue / periodsLeft`: the packed member record |
+| `enum` in an event | `Move { Subscribed, ToppedUp, Withdrawn, Released, RecoveryChanged, Left }` in `MemberMoved` |
+| `abstract contract` + inheritance (`is`) | `PoolTerms`: errors, the `MemberMoved` event and the `wholePeriods` modifier, inherited by the pool |
+| custom `error`s + `revert` | `NotAMember`, `NotTheMerchant`, `BadPeriods` |
+| `mapping(bytes20 => bytes20)` | `recoveryOf`: each member's recovery address |
 
 ## The rules it enforces
 - The merchant is paid `price` at most once per `period` per member, never before `nextDue`; `periods > 1` catches up a member who is behind.
@@ -22,14 +27,21 @@ One stateful covenant per merchant plan that keeps every subscriber's budget, in
   SolidCash compiles `tx.origin` to the first input whose coin is a 25-byte standard P2PKH script (token-free, not the pool's own input),
   and spending such a coin needs the member's signature. A caller can never redirect the refund.
 
+## Key loss: the recovery address (v2, 17 Nov)
+Each member names a recovery address when joining: another wallet of their own (cold storage, a second phone). The member can
+change it with a signature (`setRecovery`). If the member loses their key, the merchant can `release` the unspent periods, in parts
+if needed, **only to that recovery address**: the covenant pays nowhere else, so the merchant can only give up income, never take a
+member's money. Without the merchant, the prepaid periods simply keep paying the merchant as before.
+
 ## Tests
-`npx --no-install vitest run -c vitest.config.mjs`: 11 tests on the production mock network (subscribe, caps on deposits, top-up,
+`npx --no-install vitest run -c vitest.config.mjs`: 14 tests on the production mock network (subscribe, caps on deposits, top-up,
 collect never early, a final transaction lying about `due` is refused by the CLTV, batch of three in one tx, catch-up, no budget left,
-redirect and inflate attempts, withdraw/leave only by the member, fragmented-pool liveness).
-`python3 scripts/planted_controls.py`: 10 weakened copies of the contract, each must turn the suite red (all do).
+redirect and inflate attempts, withdraw/leave only by the member, fragmented-pool liveness, release only by the merchant and only
+to the recovery address, recovery address changed only by the member).
+`python3 scripts/planted_controls.py`: 14 weakened copies of the contract, each must turn the suite red (all do).
 `node scripts/pool_run.mjs simulate`: the mainnet sequence on a mock chain.
 
-## On mainnet
+## On mainnet (v1, the contract in `contracts/v1/`)
 Run of 17 Nov 2026 with our own keys, contract `bitcoincash:p0puu77vgjg476htngm94zcu2rtpq9g89jk30qwwjffx208xse0zgcmjp4cml` (log: [pool_mainnet.log](pool_mainnet.log)).
 
 | Step | Transaction | Block |

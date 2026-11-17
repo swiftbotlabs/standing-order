@@ -14,6 +14,10 @@ MUT = {
  'deposit not whole periods': ('require(deposit >= price && deposit % price == 0, "deposit must be whole periods");', 'require(deposit > 0, "deposit must be whole periods");'),
   'no key order check': ('            require(i == 0 || unsafe_int(subscribers[i] + 0x01) > unsafe_int(subscribers[i - 1] + 0x01), "list members in ascending order, once each");\n', ''),
   'anyone can leave': ('        require(hash160(pk) == subscriber, "only the member can leave");\n', ''),
+  'anyone can release': ('        if (hash160(mpk) != merchant) revert NotTheMerchant(hash160(mpk));\n', ''),
+  'release to the merchant': ('this.transfer(new LockingBytecodeP2PKH(recovery), periods * price);', 'this.transfer(new LockingBytecodeP2PKH(merchant), periods * price);'),
+  'release more than left': ('if (periods < 1 || periods > left) revert BadPeriods(periods, left);', 'if (periods < 1) revert BadPeriods(periods, left);'),
+  'anyone can set recovery': ('        require(hash160(pk) == subscriber, "only the member can change the recovery address");\n', ''),
 }
 ok = True
 for name, (a, b) in MUT.items():
