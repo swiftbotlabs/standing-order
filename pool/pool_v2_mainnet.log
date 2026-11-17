@@ -1,0 +1,14 @@
+2026-11-17T22:57:09.360Z FUND2 60000 to sub2 893161ad767b3bb71553c0c2563e2b9c7e3db3b71d0a0f9a5a1ddf001152160a https://blockchair.com/bitcoin-cash/transaction/893161ad767b3bb71553c0c2563e2b9c7e3db3b71d0a0f9a5a1ddf001152160a
+2026-11-17T22:57:15.947Z PREP not needed: vout-0 coin 893161ad76:0 1147041
+2026-11-17T22:57:37.884Z DEPLOYED category 893161ad767b3bb71553c0c2563e2b9c7e3db3b71d0a0f9a5a1ddf001152160a tx 14bfd313d419c7532576df0ce9511ceb76e6195c75609106eade975a175ca84b
+2026-11-17T22:58:13.183Z SUBSCRIBE sub 4 periods bb0356aaa942cea929bbfe91b4a3b81601ef6cb65612c060e4794c8e1c1b7f2a https://blockchair.com/bitcoin-cash/transaction/bb0356aaa942cea929bbfe91b4a3b81601ef6cb65612c060e4794c8e1c1b7f2a
+2026-11-17T22:58:45.488Z SUBSCRIBE sub2 4 periods 90c1b38380d619a5f490cccaf9cd9bc17cd8de1f649c0908a6075bd428947eae https://blockchair.com/bitcoin-cash/transaction/90c1b38380d619a5f490cccaf9cd9bc17cd8de1f649c0908a6075bd428947eae
+2026-11-17T22:59:31.443Z COLLECT 1 period(s) from sub+sub2 21496c9f08d04a1e974579a88b69446486e3f88fc0551a2b5e92b7231853de70 https://blockchair.com/bitcoin-cash/transaction/21496c9f08d04a1e974579a88b69446486e3f88fc0551a2b5e92b7231853de70
+2026-11-17T22:59:51.550Z height 977808 members 2 paidTotal 4000 pool coins [4000, 1000, 8000] {"sub":"nextDue 977809 left 3","sub2":"nextDue 977809 left 3"}
+2026-11-17T23:17:45.391Z COLLECT 1 period(s) from sub+sub2 c9a0ba5e0fb04af1464686bd1adfe55f60b3c96be3fea319e413bc5c09d09b2c https://blockchair.com/bitcoin-cash/transaction/c9a0ba5e0fb04af1464686bd1adfe55f60b3c96be3fea319e413bc5c09d09b2c
+2026-11-17T23:18:04.127Z height 977809 members 2 paidTotal 8000 pool coins [1000, 4000, 4000] {"sub":"nextDue 977810 left 2","sub2":"nextDue 977810 left 2"}
+2026-11-17T23:28:25.643Z COLLECT 2 period(s) from sub 5219cf21fe091a57b79a656f7e1ced79625a027591942a8c87bbe108cc304f95 https://blockchair.com/bitcoin-cash/transaction/5219cf21fe091a57b79a656f7e1ced79625a027591942a8c87bbe108cc304f95
+2026-11-17T23:29:05.458Z WITHDRAW sub2 1 53c0335cdb9915240283d16b1daa04c9cf040f51927b59fad332260280d16f0d https://blockchair.com/bitcoin-cash/transaction/53c0335cdb9915240283d16b1daa04c9cf040f51927b59fad332260280d16f0d
+2026-11-17T23:29:57.889Z RELEASE sub2 1 to recovery bitcoincash:qq63ztxw24rnv4l66v64a70gkj3rk053sy2n742xyd 36ce49fef70152e7969c33c4a7b3454647a0aa872ab0af408d329b2ffe7da7ac https://blockchair.com/bitcoin-cash/transaction/36ce49fef70152e7969c33c4a7b3454647a0aa872ab0af408d329b2ffe7da7ac
+2026-11-17T23:30:27.056Z LEAVE sub edb9b0938dc805aa5bf213c5c0c516c3a4a8b7a96f00fbfbe7cbc09b0ebc2eff https://blockchair.com/bitcoin-cash/transaction/edb9b0938dc805aa5bf213c5c0c516c3a4a8b7a96f00fbfbe7cbc09b0ebc2eff
+2026-11-17T23:30:40.796Z height 977811 members 0 paidTotal 12000 pool coins [1000] {"sub":"not a member","sub2":"not a member"}

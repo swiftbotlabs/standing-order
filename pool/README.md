@@ -41,6 +41,30 @@ to the recovery address, recovery address changed only by the member).
 `python3 scripts/planted_controls.py`: 14 weakened copies of the contract, each must turn the suite red (all do).
 `node scripts/pool_run.mjs simulate`: the mainnet sequence on a mock chain.
 
+## On mainnet (v2, 17 Nov)
+Run with our own keys, contract `bitcoincash:pvfw6fhv3rp925ejjrqshy75afuwaak0kuvtf35a05y8vdqq07wujd2a8mej2`
+(log: [pool_v2_mainnet.log](pool_v2_mainnet.log)). The release went to member 2's recovery address
+`bitcoincash:qq63ztxw24rnv4l66v64a70gkj3rk053sy2n742xyd`, a different key from the member's and the merchant's.
+
+| Step | Transaction | Block | Size |
+|---|---|---|---|
+| deploy the v2 pool (2,000 sats per 1-block period) | [14bfd313](https://blockchair.com/bitcoin-cash/transaction/14bfd313d419c7532576df0ce9511ceb76e6195c75609106eade975a175ca84b) | 977809 | 906 B |
+| member 1 subscribes, 4 periods, naming a recovery address | [bb0356aa](https://blockchair.com/bitcoin-cash/transaction/bb0356aaa942cea929bbfe91b4a3b81601ef6cb65612c060e4794c8e1c1b7f2a) | 977809 | 11,232 B |
+| member 2 subscribes, 4 periods, naming a recovery address | [90c1b383](https://blockchair.com/bitcoin-cash/transaction/90c1b38380d619a5f490cccaf9cd9bc17cd8de1f649c0908a6075bd428947eae) | 977809 | 11,129 B |
+| collect from both members in one transaction (merchant +4,000) | [21496c9f](https://blockchair.com/bitcoin-cash/transaction/21496c9f08d04a1e974579a88b69446486e3f88fc0551a2b5e92b7231853de70) | 977809 | 10,715 B |
+| next period: collect from both again | [c9a0ba5e](https://blockchair.com/bitcoin-cash/transaction/c9a0ba5e0fb04af1464686bd1adfe55f60b3c96be3fea319e413bc5c09d09b2c) | 977810 | 10,715 B |
+| catch-up: two periods from member 1 (paidTotal 12,000) | [5219cf21](https://blockchair.com/bitcoin-cash/transaction/5219cf21fe091a57b79a656f7e1ced79625a027591942a8c87bbe108cc304f95) | 977812 | 10,359 B |
+| member 2 withdraws 1 period | [53c0335c](https://blockchair.com/bitcoin-cash/transaction/53c0335cdb9915240283d16b1daa04c9cf040f51927b59fad332260280d16f0d) | 977812 | 10,966 B |
+| **key-loss path**: the merchant releases member 2's last period, paid to member 2's recovery address | [36ce49fe](https://blockchair.com/bitcoin-cash/transaction/36ce49fef70152e7969c33c4a7b3454647a0aa872ab0af408d329b2ffe7da7ac) | 977812 | 10,817 B |
+| member 1 leaves | [edb9b093](https://blockchair.com/bitcoin-cash/transaction/edb9b0938dc805aa5bf213c5c0c516c3a4a8b7a96f00fbfbe7cbc09b0ebc2eff) | 977812 | 10,316 B |
+Final state: 0 members, paidTotal 12,000 sats, one 1,000-sat pool coin left.
+
+**Cost, stated plainly:** every v2 call is a ~10.3-11.2 KB transaction (fee ~10.3-11.4k sats at 1 sat/byte, about 2 US cents),
+1.3-1.5x the same v1 call (collect 10,905 vs 8,206 sats; subscribe 11,422 vs 7,690): each spend carries the larger v2 contract,
+its state and two verified mappings.
+That is a fixed cost per call: one `collect` serves up to 16 members. Custom errors compile to a plain failing script in SolidCash
+(the compiler type-checks their arguments but does not put them on chain), so they name the failure in the source and the tests only.
+
 ## On mainnet (v1, the contract in `contracts/v1/`)
 Run of 17 Nov 2026 with our own keys, contract `bitcoincash:p0puu77vgjg476htngm94zcu2rtpq9g89jk30qwwjffx208xse0zgcmjp4cml` (log: [pool_mainnet.log](pool_mainnet.log)).
 
