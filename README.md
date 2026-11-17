@@ -102,9 +102,10 @@ mapping is the on-chain subscriber register, a covenant loop collects up to 16 m
 merchant, a catch-up collects missed periods, deposits sit in the satoshi container, an absolute timelock (`tx.time`) sets each
 member's due block, and `withdraw` / `leave` can only pay the member back (`tx.origin` + `checkSig`). **Key loss** (v2): each member names
 a recovery address; if they lose their key, the merchant can release their unspent periods only to that address. Syntax used besides:
-a `library`, an `enum` in an event, an `abstract contract` base, custom `error`s with `revert`. 14 tests, 14 planted controls,
+a `library`, an `enum` in an event, an `abstract contract` base, custom `error`s with `revert` (a plain failing script on chain). 14 tests, 14 planted controls,
 and a full run on **mainnet** (deploy, two members, a two-member collect, a catch-up, a withdraw, a leave; a collect tried before
-the next period was refused): [txids](pool/README.md#on-mainnet).
+the next period was refused): [v1 txids](pool/README.md#on-mainnet-v1-the-contract-in-contractsv1); v2 on mainnet including a key-loss release to
+the recovery address: [v2 txids](pool/README.md#on-mainnet-v2-17-nov).
 
 ## Built in the BLAZE window (14-22 Nov) vs. before kick-off
 The tag `pre-kickoff` (14 Nov, 13:35 UTC, before the 14:00 UTC start) is the base; everything below it is new in the window.
