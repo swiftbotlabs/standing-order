@@ -17,6 +17,7 @@ kick-off; the tag `pre-kickoff` marks the state at kick-off.
   are marked "Chipnet · test coins".
 - **Watch it:** the 2-minute film on the home page (real chipnet flow; a real Paytaca sign request).
 - **Proof on mainnet:** subscribe, split claim, pause, resume, top up, claim, cancel with real BCH, txids [below](#proven-on-mainnet-real-bch).
+- **Security on one page:** [THREAT_MODEL.md](THREAT_MODEL.md): who can do what, every attack considered and the test that runs it.
 - **What is new in the BLAZE window:** Standing Order Plus (v2 covenant) + 42 tests + a third security review, [table](#built-in-the-blaze-window-14-22-nov-vs-before-kick-off).
 - **SolidCash features, each linked to its line:**
 
@@ -68,11 +69,14 @@ The tag `pre-kickoff` (14 Nov, 13:35 UTC, before the 14:00 UTC start) is the bas
 |---|---|---|
 | Contracts | `StandingOrder` (BCH) and `StandingOrderToken` (CashTokens): claim one period per period, cancel | **`StandingOrderPlus` + `PausedOrder`**: split payee, pause/resume, top up, two-party plan change, on-chain computed paused address, token-poisoning and clock-reset guards |
 | Tests | 35 solidhat tests (v1 + replay attacks) | **+42 tests** (`standing_order_plus.test.ts` 33 incl. VM-verified pause, resume, claim round trip; `review_v2.test.ts` 9 VM regressions for the v2 review findings); planted controls for every guard |
-| Proof | chipnet runs of v1 | **mainnet**: the whole Plus lifecycle with real BCH (below); chipnet web-code e2e of Plus |
+| Proof | chipnet runs of v1 | **mainnet**: the whole Plus lifecycle with real BCH, a two-party plan change, and a PUSD stablecoin order (below); chipnet web-code e2e of Plus |
 | Dapp + relayer | v1 pay links, subscribe, cancel, keyless relayer | v2 pay links with split, Pause / Resume / Add a period on the order page, cancel from paused, relayer claims v2 and waits out BIP68 holds, 14 Nov banner |
 | Upstream SolidCash | PR [#1](https://github.com/solidcash/solidcash/pull/1) (WalletConnect covered bytecode) | issue [#2](https://github.com/solidcash/solidcash/issues/2): five findings with reproductions; the first follow-up PR (findings 1-3: example pragmas, awaited matchers, docs) is ready and opens once #1 is reviewed (one open PR at a time) |
 | Security | two reviews of v1 | a third review of v2: no theft path; four weaknesses fixed, each with a regression test |
 | Media | deck | the 2-minute demo film on the home page |
+| **Lines of code** (`git diff pre-kickoff main`, no lockfiles or build output) | contracts 138, tests 514 (35 tests), scripts 457, dapp `web/src` 677 | contracts **+175** (313 now), tests **+543** (1,057 now, 77 tests), scripts **+471**, dapp **+259 / -41** |
+
+Compare it yourself: [pre-kickoff...main](https://github.com/swiftbotlabs/standing-order/compare/pre-kickoff...main). Threat model on one page: [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ## Contracts (SolidCash), v1
 - `contracts/standing_order.scash` (BCH): `claim()` / `cancel()`, 277 bytes with its arguments.
