@@ -4,6 +4,18 @@
 
 **Subscriptions that pay themselves, on Bitcoin Cash.** Live: https://standing-order.swiftbotlab.workers.dev/
 
+**Cancelled means cancelled.** The coins carry the rules, not the company: one payment a period, never early, never more, and
+when you cancel, everything not yet paid comes back. No server of ours holds a key; if our site went dark tomorrow, every order
+would keep working. Three moments on mainnet, with real BCH:
+
+| | |
+|---|---|
+| **The network says no** | we tried to pull a payment early 10 times; consensus refused every one (`non-BIP68-final`, [run log](proofs/mainnet_plus_2026-11-16.log)) |
+| **A stranger can collect, nobody can steal** | a signature-free claim built offline and broadcast through a public block explorer, not our relayer, paid exactly what the plan says: [cba7e44a](https://blockchair.com/bitcoin-cash/transaction/cba7e44a1cc53762890bbd7a4d5fbfd05e7a0670432113a05ce9430e8c35b1be) |
+| **Cancel, and the money comes home** | one transaction returns the unclaimed balance: [a68c39cb](https://blockchair.com/bitcoin-cash/transaction/a68c39cb4df5e71eb7d3e3f2ecddc70c4569ffdc8f70192f113b8dfbb81ce9f9) (BCH), [aa3a8aa6](https://blockchair.com/bitcoin-cash/transaction/aa3a8aa6cc382b3178b8fa421420212c8d812acf1d95aeb52c217c71b0971607) (PUSD) |
+
+**Watch the 17-second film:** [Coins with rules](https://standing-order.swiftbotlab.workers.dev/film/) (also on [YouTube Shorts](https://youtube.com/shorts/p8m_4ubXscg)).
+
 A subscriber funds a standing order once. The merchant can take one period's amount per period, never more and never
 early. The subscriber can cancel any time and the rest comes straight back. No custody: the funds sit in a covenant
 that only enforces those rules. Plans can be priced in BCH or in a CashToken stablecoin such as PUSD.
@@ -15,7 +27,7 @@ kick-off; the tag `pre-kickoff` marks the state at kick-off.
 - **Try it:** open https://standing-order.swiftbotlab.workers.dev/ (it opens on **mainnet**, labelled beside the logo), press
   **Connect wallet** at the top right (WizardConnect: Selene, Paytaca, Cashonize), then **Try it: 1 cent a block**. Chipnet pages
   are marked "Chipnet · test coins".
-- **Watch it:** the 2-minute film on the home page (real chipnet flow; a real Paytaca sign request).
+- **Watch it:** the [17-second film](https://standing-order.swiftbotlab.workers.dev/film/), and the 2-minute demo on the home page (real chipnet flow; a real Paytaca sign request).
 - **Proof on mainnet:** subscribe, split claim, pause, resume, top up, claim, cancel with real BCH, txids [below](#proven-on-mainnet-real-bch).
 - **What if something goes wrong:** merchant stops delivering, early pulls, a one-sided price change, our site gone: [each case with its proof](#what-if-something-goes-wrong).
 - **Stateful SolidCash:** [Standing Order Pool](#standing-order-pool-one-stateful-covenant-per-plan-solidcash-051-17-nov): mapping register, covenant loop, satoshi container, events, CLTV, `tx.origin`; run on mainnet.
