@@ -97,3 +97,11 @@ label.inline input { width: auto; margin: 0; }
 .brandrow { display: flex; align-items: center; gap: 10px; }
 .netpill { font-size: 12px; font-weight: 700; letter-spacing: .02em; padding: 3px 9px; border-radius: 999px; background: var(--brand); color: var(--brand-ink); white-space: nowrap; }
 .netpill.chip { background: #b7791f; color: #fff; }
+
+.moments { display: grid; grid-template-columns: minmax(180px, 260px) 1fr; gap: 24px; align-items: center; margin: 0 0 28px; }
+.moments video.short { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; display: block; border-radius: 18px; border: 1px solid var(--line); background: #f3f2ee; }
+.moments h2 { font-size: clamp(28px, 5vw, 44px); line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 8px; }
+.moments ul { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 10px; }
+.moments li { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--card); color: var(--muted); font-size: 15px; }
+.moments li b { color: var(--ink); }
+@media (max-width: 640px) { .moments { grid-template-columns: 1fr; } .moments video.short { max-width: 240px; margin: 0 auto; } }

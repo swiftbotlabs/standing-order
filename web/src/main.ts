@@ -82,6 +82,19 @@ function renderHome() {
     </div>
     <p class="muted small">No BCH handy? <a href="${demoChip}">Try it on chipnet</a> with free test coins.</p>
   </section>
+  <section class="moments" aria-label="Cancelled means cancelled">
+    <video class="short" autoplay muted loop playsinline preload="metadata" poster="/film/coins-poster.jpg" src="/film/coins-with-rules-captions-540.mp4"></video>
+    <div>
+      <h2>Cancelled means cancelled.</h2>
+      <p class="muted">The coins carry the rules, not the company. Three moments on Bitcoin Cash mainnet, with real money:</p>
+      <ul>
+        <li><b>The network says no.</b> We tried to take a payment early 10 times. Every one was refused. <a href="https://github.com/swiftbotlabs/standing-order/blob/main/proofs/mainnet_plus_2026-11-16.log" target="_blank" rel="noopener">Run log</a></li>
+        <li><b>A stranger can collect, nobody can steal.</b> A claim sent through a public block explorer, not our server, paid exactly what the plan says. <a href="https://blockchair.com/bitcoin-cash/transaction/cba7e44a1cc53762890bbd7a4d5fbfd05e7a0670432113a05ce9430e8c35b1be" target="_blank" rel="noopener">Transaction</a></li>
+        <li><b>Cancel, and the money comes home.</b> One transaction returned the unpaid balance. <a href="https://blockchair.com/bitcoin-cash/transaction/a68c39cb4df5e71eb7d3e3f2ecddc70c4569ffdc8f70192f113b8dfbb81ce9f9" target="_blank" rel="noopener">Transaction</a></li>
+      </ul>
+      <p class="muted small">What if something goes wrong? The merchant stops delivering, someone pulls early, one side changes the price, our site goes dark: <a href="https://github.com/swiftbotlabs/standing-order#what-if-something-goes-wrong" target="_blank" rel="noopener">each case and its proof</a>.</p>
+    </div>
+  </section>
   <section class="film" aria-label="Demo film">
     <video controls preload="none" playsinline poster="/film/poster.jpg" src="/film/standing-order.mp4"></video>
     <p class="muted small">Two minutes: the whole flow on chipnet with real transactions (pay link, one approval, relayer claim, pause, cancel).</p>
@@ -109,7 +122,7 @@ function renderHome() {
   <ul class="facts">
     <li><b>Non-custodial</b> covenant written in SolidCash</li>
     <li><b>BCH or PUSD</b> stablecoin plans</li>
-    <li><b>Proven on chipnet</b>: early claims refused by the network</li>
+    <li><b>Proven on mainnet</b>: early claims refused by the network</li>
     <li><b>Open source</b> on <a href="https://github.com/swiftbotlabs/standing-order" target="_blank" rel="noopener">GitHub</a></li>
   </ul>`;
 }
