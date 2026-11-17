@@ -120,6 +120,18 @@ The tag `pre-kickoff` (14 Nov, 13:35 UTC, before the 14:00 UTC start) is the bas
 | Media | deck | the 2-minute demo film on the home page |
 | **Lines of code** (`git diff pre-kickoff main`, no lockfiles or build output) | contracts 138, tests 514 (35 tests), scripts 457, dapp `web/src` 677 | contracts **+175** (313 now), tests **+543** (1,057 now, 77 tests), scripts **+471**, dapp **+259 / -41** |
 
+**In-window commits** (UTC dates; the full list is the compare link below):
+- [8e0b98e](https://github.com/swiftbotlabs/standing-order/commit/8e0b98e) 15 Nov: Standing Order Plus (v2): split payee, pause/resume, top-up, plan change; security-review fixes with regression tests
+- [be8ffc7](https://github.com/swiftbotlabs/standing-order/commit/be8ffc7) 15 Nov: relayer waits out BIP68 holds (a claim refused as not final is retried)
+- [3b5cb22](https://github.com/swiftbotlabs/standing-order/commit/3b5cb22) 16 Nov: mainnet: the full Plus lifecycle with real BCH
+- [0fc3820](https://github.com/swiftbotlabs/standing-order/commit/0fc3820) 16 Nov: WizardConnect button top right, connected wallet reused by pay pages
+- [d1439a8](https://github.com/swiftbotlabs/standing-order/commit/d1439a8) 16 Nov: mainnet: PUSD stablecoin order (subscribe, claim, cancel)
+- [935e687](https://github.com/swiftbotlabs/standing-order/commit/935e687) 17 Nov: mainnet: two-party plan change
+- [ef19d61](https://github.com/swiftbotlabs/standing-order/commit/ef19d61) 17 Nov: one-page threat model
+- [ee38b79](https://github.com/swiftbotlabs/standing-order/commit/ee38b79) 17 Nov: "What if something goes wrong?" with proofs; Standing Order Pool (stateful SolidCash) and its mainnet run
+- [697caca](https://github.com/swiftbotlabs/standing-order/commit/697caca) 17 Nov: home: "Cancelled means cancelled" with the 17 s film and three mainnet moments
+- [08228f7](https://github.com/swiftbotlabs/standing-order/commit/08228f7) 17 Nov: Pool v2: key-loss recovery address, library, enum, abstract base, custom errors
+
 Compare it yourself: [pre-kickoff...main](https://github.com/swiftbotlabs/standing-order/compare/pre-kickoff...main). Threat model on one page: [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ## Contracts (SolidCash), v1
