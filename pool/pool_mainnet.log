@@ -1,0 +1,16 @@
+2026-11-17T09:43:32.274Z FUND2 60000 to sub2 65af8f2f422819dc319b274cb6d4d847a426f90bbdeb2c095127ec91399ee05c https://blockchair.com/bitcoin-cash/transaction/65af8f2f422819dc319b274cb6d4d847a426f90bbdeb2c095127ec91399ee05c
+2026-11-17T10:56:49.503Z PREP self-send to vout 0 2f519424a4274ee60591aa372e49f824dbee916bc5fba0eb175c76a23bb29859 https://blockchair.com/bitcoin-cash/transaction/2f519424a4274ee60591aa372e49f824dbee916bc5fba0eb175c76a23bb29859
+2026-11-17T10:57:03.969Z DEPLOYED category 2f519424a4274ee60591aa372e49f824dbee916bc5fba0eb175c76a23bb29859 tx ee41dc87d88fbcf6d657058564270b9dc50b4cf3927352eeced69d9b334bd19a
+2026-11-17T11:01:56.195Z SUBSCRIBE sub 4 periods cd565869afc900a629d97f079a6252d7a606e8b56219bb6df4206aec233e6c5c https://blockchair.com/bitcoin-cash/transaction/cd565869afc900a629d97f079a6252d7a606e8b56219bb6df4206aec233e6c5c
+2026-11-17T11:02:35.005Z SUBSCRIBE sub2 3 periods d5644398eaaedb4d02d4c83a2a890f18ae27fac47b73a4e5ac0251991953ee6b https://blockchair.com/bitcoin-cash/transaction/d5644398eaaedb4d02d4c83a2a890f18ae27fac47b73a4e5ac0251991953ee6b
+2026-11-17T11:02:53.534Z height 977740 members 2 paidTotal 0 pool coins [1000, 6000, 8000] {"sub":"nextDue 977740 left 4","sub2":"nextDue 977740 left 3"}
+2026-11-17T11:03:23.574Z COLLECT 1 period(s) from sub+sub2 03b99ffa4d2670ace06940f4f3a918203fdd83bc6f4ea0885e82f93fbe4f39c8 https://blockchair.com/bitcoin-cash/transaction/03b99ffa4d2670ace06940f4f3a918203fdd83bc6f4ea0885e82f93fbe4f39c8
+2026-11-17T11:03:35.142Z height 977740 members 2 paidTotal 4000 pool coins [1000, 4000, 6000] {"sub":"nextDue 977741 left 3","sub2":"nextDue 977741 left 2"}
+2026-11-17T11:03:48.649Z COLLECT REFUSED: VM failed at ip 228 opcode 96: Program failed an OP_VERIFY operation.; input 0; require: member not due
+2026-11-17T11:12:18.020Z COLLECT 1 period(s) from sub+sub2 22a8dc66874b9676b9e7e4bd3baa03f65d353636d1e5b55753ed27b6a9ba2820 https://blockchair.com/bitcoin-cash/transaction/22a8dc66874b9676b9e7e4bd3baa03f65d353636d1e5b55753ed27b6a9ba2820
+2026-11-17T11:12:32.447Z height 977741 members 2 paidTotal 8000 pool coins [1000, 4000, 2000] {"sub":"nextDue 977742 left 2","sub2":"nextDue 977742 left 1"}
+2026-11-17T11:40:11.486Z COLLECT 2 period(s) from sub c17e5f858d029911e6bb1512092748dc08d8b6013c13257c48a877395d65fc39 https://blockchair.com/bitcoin-cash/transaction/c17e5f858d029911e6bb1512092748dc08d8b6013c13257c48a877395d65fc39
+2026-11-17T11:40:21.574Z height 977743 members 2 paidTotal 12000 pool coins [1000, 2000] {"sub":"nextDue 977744 left 0","sub2":"nextDue 977742 left 1"}
+2026-11-17T11:41:15.038Z WITHDRAW sub2 1 6831bb3ad7451d38d69f5c854e023d49dffd87b26b16ce58543ca5602d52ebe5 https://blockchair.com/bitcoin-cash/transaction/6831bb3ad7451d38d69f5c854e023d49dffd87b26b16ce58543ca5602d52ebe5
+2026-11-17T11:41:32.204Z LEAVE sub efe62b4411dcaf382122f91ec07a3009de63be1e67f852f90d86b25afd22aa0d https://blockchair.com/bitcoin-cash/transaction/efe62b4411dcaf382122f91ec07a3009de63be1e67f852f90d86b25afd22aa0d
+2026-11-17T11:41:46.459Z height 977743 members 0 paidTotal 12000 pool coins [1000] {"sub":"not a member","sub2":"not a member"}

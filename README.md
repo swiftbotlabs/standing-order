@@ -17,6 +17,8 @@ kick-off; the tag `pre-kickoff` marks the state at kick-off.
   are marked "Chipnet · test coins".
 - **Watch it:** the 2-minute film on the home page (real chipnet flow; a real Paytaca sign request).
 - **Proof on mainnet:** subscribe, split claim, pause, resume, top up, claim, cancel with real BCH, txids [below](#proven-on-mainnet-real-bch).
+- **What if something goes wrong:** merchant stops delivering, early pulls, a one-sided price change, our site gone: [each case with its proof](#what-if-something-goes-wrong).
+- **Stateful SolidCash:** [Standing Order Pool](#standing-order-pool-one-stateful-covenant-per-plan-solidcash-051-17-nov): mapping register, covenant loop, satoshi container, events, CLTV, `tx.origin`; run on mainnet.
 - **Security on one page:** [THREAT_MODEL.md](THREAT_MODEL.md): who can do what, every attack considered and the test that runs it.
 - **What is new in the BLAZE window:** Standing Order Plus (v2 covenant) + 42 tests + a third security review, [table](#built-in-the-blaze-window-14-22-nov-vs-before-kick-off).
 - **SolidCash features, each linked to its line:**
@@ -32,6 +34,26 @@ kick-off; the tag `pre-kickoff` marks the state at kick-off.
 | `require` messages | throughout, e.g. [`"one claim per period"`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L64) |
 | solidhat (`solidcash.config.mjs`, `solidhat test`) | [`test/`](https://github.com/swiftbotlabs/standing-order/blob/main/test) - 77 tests |
 
+
+## What if something goes wrong?
+Every failure we planned for, what happens, and the proof: a mainnet transaction, a refusal from the network, or a test that
+runs the attack on the 2026 VM. None of it depends on us: the rules live in the covenant, and no server of ours holds a key.
+
+| If... | What happens | Proof |
+|---|---|---|
+| The merchant stops delivering | The subscriber presses Cancel. Everything not yet claimed comes back in one transaction; the merchant keeps only periods already paid. No dispute, no support ticket. Only the subscriber can cancel. | mainnet cancel [a68c39cb](https://blockchair.com/bitcoin-cash/transaction/a68c39cb4df5e71eb7d3e3f2ecddc70c4569ffdc8f70192f113b8dfbb81ce9f9); PUSD order cancel, 2 of 3 units back [aa3a8aa6](https://blockchair.com/bitcoin-cash/transaction/aa3a8aa6cc382b3178b8fa421420212c8d812acf1d95aeb52c217c71b0971607); test [refuses a cancel by the merchant](https://github.com/swiftbotlabs/standing-order/blob/main/test/standing_order_plus.test.ts#L329) |
+| Anyone (the merchant included) pulls early or twice | The network refuses it: the period is a relative timelock on the order coin itself, and every claim restarts it. | on mainnet we tried 10 early claims; all 10 were refused `non-BIP68-final` ([run log](proofs/mainnet_plus_2026-11-16.log)); test [refuses a claim before the period has passed](https://github.com/swiftbotlabs/standing-order/blob/main/test/standing_order_plus.test.ts#L51) |
+| A claim takes more, adds an output or merges two coins | Refused: the amount, the recipients and the change back to the same covenant are fixed. | tests [third output](https://github.com/swiftbotlabs/standing-order/blob/main/test/standing_order_plus.test.ts#L94), [merging two UTXOs](https://github.com/swiftbotlabs/standing-order/blob/main/test/standing_order_plus.test.ts#L262) |
+| One side wants a new price or period | `changePlan()` needs the merchant **and** the subscriber, both signing the whole transaction; either one alone is refused. | mainnet: claim at 10,000 sats, both sign the change [aa44737d](https://blockchair.com/bitcoin-cash/transaction/aa44737d7e1aafe3e3453a4b2fb0f5a318cc87d1e41ba2b31a1c898e9c074fd6), claim at the new 20,000 sats [cf2c6f4c](https://blockchair.com/bitcoin-cash/transaction/cf2c6f4cf39f021c8a4a077287aac454dd432fde188c05f6037ed029b91cb600); tests [subscriber alone](https://github.com/swiftbotlabs/standing-order/blob/main/test/standing_order_plus.test.ts#L291), [merchant alone](https://github.com/swiftbotlabs/standing-order/blob/main/test/standing_order_plus.test.ts#L300) |
+| Our site, relayer or company disappears | The money stays in the covenant and the rules still hold. Anyone can still claim (no signature needed) and the subscriber can still cancel, with the MIT-licensed scripts in this repo. | mainnet claim built offline (`scripts/mainnet_plus.mjs claim --dry --hex`) and broadcast through a public block explorer, not our relayer: [cba7e44a](https://blockchair.com/bitcoin-cash/transaction/cba7e44a1cc53762890bbd7a4d5fbfd05e7a0670432113a05ce9430e8c35b1be) ([log](proofs/mainnet_thirdparty_claim_2026-11-17.log)) |
+| The subscriber pauses or tops up to restart the clock | Pause and top-up must pay the period in progress first, so the merchant never waits longer. Resume only goes back to the same order. | mainnet pause that paid the period [57dbfffb](https://blockchair.com/bitcoin-cash/transaction/57dbfffb83e4bc19b06e1dc46f61ea2c6333aead487bbbde2e732992628df07d); test [pause pays the period in progress](https://github.com/swiftbotlabs/standing-order/blob/main/test/review_v2.test.ts#L67) |
+| The balance runs out | The last claim pays what is left (the split payee's share included) and the order ends. No overdraft, no debt, no failed-card retries. | test [last claim](https://github.com/swiftbotlabs/standing-order/blob/main/test/standing_order_plus.test.ts#L104) |
+| Someone sends a token or dust to the order | No token may ride on the order coin; the app and relayer pick the order coin by value and ignore junk. | test [mints a token onto the change](https://github.com/swiftbotlabs/standing-order/blob/main/test/review_v2.test.ts#L50) |
+| The subscriber loses their key | Claims keep paying the merchant until the balance is used up; cancel and pause need that key (an accepted risk). | [THREAT_MODEL.md](THREAT_MODEL.md) |
+
+The full list of attacks and their guards is in [THREAT_MODEL.md](THREAT_MODEL.md). We build in public: every commit is on
+GitHub ([what changed in the BLAZE window](https://github.com/swiftbotlabs/standing-order/compare/pre-kickoff...main)), every
+mainnet run's log is in [`proofs/`](proofs/), and progress goes out on X ([@swiftbotlab](https://x.com/swiftbotlab)).
 
 ## How it works
 
@@ -61,6 +83,14 @@ first: pausing, resuming or topping up can never keep the merchant waiting. Soli
 `modifier`, `internal` functions (OP_DEFINE / OP_INVOKE subroutines), a `bytes constant` template, `require` messages,
 `LockingBytecodeP2SH32` + `hash256` covenant construction, `this.age`, token introspection (`tokenCategory == 0x`).
 Sizes: 1,005 bytes (order) and 274 bytes (paused) with their arguments; v2 claims allow up to 2,000 sats of fee.
+
+## Standing Order Pool: one stateful covenant per plan (SolidCash 0.51, 17 Nov)
+[`pool/`](pool/) keeps every subscriber of a plan in one stateful covenant instead of one coin per subscription: a verified
+mapping is the on-chain subscriber register, a covenant loop collects up to 16 members in one transaction with one payout to the
+merchant, a catch-up collects missed periods, deposits sit in the satoshi container, an absolute timelock (`tx.time`) sets each
+member's due block, and `withdraw` / `leave` can only pay the member back (`tx.origin` + `checkSig`). 11 tests, 10 planted controls,
+and a full run on **mainnet** (deploy, two members, a two-member collect, a catch-up, a withdraw, a leave; a collect tried before
+the next period was refused): [txids](pool/README.md#on-mainnet).
 
 ## Built in the BLAZE window (14-22 Nov) vs. before kick-off
 The tag `pre-kickoff` (14 Nov, 13:35 UTC, before the 14:00 UTC start) is the base; everything below it is new in the window.

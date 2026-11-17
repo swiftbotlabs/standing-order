@@ -1,0 +1,100 @@
+# Standing Order Plus, mainnet run of 16 Nov 2026 (scripts/mainnet_plus.mjs), unedited log.
+# Every 'CLAIMED REJECTED ... non-BIP68-final' line is a claim tried before its period had passed: the network refused it.
+2026-11-16T03:04:41.016Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:04:47.706Z height 977560 | order utxos: none | paused utxos: none
+2026-11-16T03:04:49.712Z subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza 6cc373763a:0 1448770
+2026-11-16T03:04:51.727Z merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd none
+2026-11-16T03:04:54.821Z split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe none
+2026-11-16T03:06:24.789Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:06:31.965Z order utxos: none | paused utxos: none | subscriber coins: 6cc373763a:0 1448770
+2026-11-16T03:06:36.041Z FUNDED a813b51e39f81bc541fc9c42faf0a57b0f6ff677f468fc8ee52970a87d2e0efd https://blockchair.com/bitcoin-cash/transaction/a813b51e39f81bc541fc9c42faf0a57b0f6ff677f468fc8ee52970a87d2e0efd
+2026-11-16T03:06:36.289Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:06:42.379Z order utxos: a813b51e39:0 60000 | paused utxos: none | subscriber coins: a813b51e39:1 1387770
+2026-11-16T03:06:44.879Z CLAIMED REJECTED: the transaction was rejected by network rules.
+
+non-BIP68-final (code 64)
+
+2026-11-16T03:08:45.125Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:08:51.020Z order utxos: a813b51e39:0 60000 | paused utxos: none | subscriber coins: a813b51e39:1 1387770
+2026-11-16T03:08:53.064Z CLAIMED REJECTED: the transaction was rejected by network rules.
+
+non-BIP68-final (code 64)
+
+2026-11-16T03:10:53.321Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:10:58.980Z order utxos: a813b51e39:0 60000 | paused utxos: none | subscriber coins: a813b51e39:1 1387770
+2026-11-16T03:11:01.100Z CLAIMED REJECTED: the transaction was rejected by network rules.
+
+non-BIP68-final (code 64)
+
+2026-11-16T03:13:01.367Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:13:06.842Z order utxos: a813b51e39:0 60000 | paused utxos: none | subscriber coins: a813b51e39:1 1387770
+2026-11-16T03:13:08.983Z CLAIMED REJECTED: the transaction was rejected by network rules.
+
+non-BIP68-final (code 64)
+
+2026-11-16T03:15:09.247Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:15:15.132Z order utxos: a813b51e39:0 60000 | paused utxos: none | subscriber coins: a813b51e39:1 1387770
+2026-11-16T03:15:17.173Z CLAIMED REJECTED: the transaction was rejected by network rules.
+
+non-BIP68-final (code 64)
+
+2026-11-16T03:17:17.431Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:17:23.073Z order utxos: a813b51e39:0 60000 | paused utxos: none | subscriber coins: a813b51e39:1 1387770
+2026-11-16T03:17:25.225Z CLAIMED REJECTED: the transaction was rejected by network rules.
+
+non-BIP68-final (code 64)
+
+2026-11-16T03:19:25.491Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:19:30.989Z order utxos: a813b51e39:0 60000 | paused utxos: none | subscriber coins: a813b51e39:1 1387770
+2026-11-16T03:19:35.038Z CLAIMED 83989cdd83e57dd7d1799f9282a3d77e6622edb324bd364de663bae8d5037aa0 https://blockchair.com/bitcoin-cash/transaction/83989cdd83e57dd7d1799f9282a3d77e6622edb324bd364de663bae8d5037aa0
+2026-11-16T03:19:55.313Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:20:00.801Z order utxos: 83989cdd83:2 47000 | paused utxos: none | subscriber coins: a813b51e39:1 1387770
+2026-11-16T03:20:04.560Z PAUSED 57dbfffb83e4bc19b06e1dc46f61ea2c6333aead487bbbde2e732992628df07d https://blockchair.com/bitcoin-cash/transaction/57dbfffb83e4bc19b06e1dc46f61ea2c6333aead487bbbde2e732992628df07d
+2026-11-16T03:20:24.856Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:20:30.989Z order utxos: none | paused utxos: 57dbfffb83:2 36000 | subscriber coins: 57dbfffb83:3 1385770
+2026-11-16T03:20:34.994Z RESUMED 3cfa46b1391f642a0869be9745407eb007ccf14d54d064adaa651e3d98e47b4e https://blockchair.com/bitcoin-cash/transaction/3cfa46b1391f642a0869be9745407eb007ccf14d54d064adaa651e3d98e47b4e
+2026-11-16T03:20:55Z immediate claim after resume (expected to be REFUSED, period restarts):
+2026-11-16T03:20:55.260Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:21:00.924Z order utxos: 3cfa46b139:0 36000 | paused utxos: none | subscriber coins: 3cfa46b139:1 1383770
+2026-11-16T03:21:03.069Z CLAIMED REJECTED: the transaction was rejected by network rules.
+
+non-BIP68-final (code 64)
+
+2026-11-16T03:21:23.338Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:21:28.955Z order utxos: 3cfa46b139:0 36000 | paused utxos: none | subscriber coins: 3cfa46b139:1 1383770
+2026-11-16T03:21:33.007Z TOPPED_UP f56cc6293c6a81ec4830f123d2333dea4b177ebd0e83eb390b520eba2fe4f68e https://blockchair.com/bitcoin-cash/transaction/f56cc6293c6a81ec4830f123d2333dea4b177ebd0e83eb390b520eba2fe4f68e
+2026-11-16T03:21:33.247Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:21:39.059Z order utxos: f56cc6293c:2 49000 | paused utxos: none | subscriber coins: f56cc6293c:3 1357770
+2026-11-16T03:21:43.620Z CLAIMED REJECTED: the transaction was rejected by network rules.
+
+non-BIP68-final (code 64)
+
+2026-11-16T03:23:43.869Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:23:49.840Z order utxos: f56cc6293c:2 49000 | paused utxos: none | subscriber coins: f56cc6293c:3 1357770
+2026-11-16T03:23:51.881Z CLAIMED REJECTED: the transaction was rejected by network rules.
+
+non-BIP68-final (code 64)
+
+2026-11-16T03:25:52.144Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:25:57.823Z order utxos: f56cc6293c:2 49000 | paused utxos: none | subscriber coins: f56cc6293c:3 1357770
+2026-11-16T03:25:59.843Z CLAIMED REJECTED: the transaction was rejected by network rules.
+
+non-BIP68-final (code 64)
+
+2026-11-16T03:28:00.400Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:28:06.157Z order utxos: f56cc6293c:2 49000 | paused utxos: none | subscriber coins: f56cc6293c:3 1357770
+2026-11-16T03:28:10.323Z CLAIMED bcbd439c8357f70c811926979fc3f91b564aa4b04f1b693565d31578f4b6a7e3 https://blockchair.com/bitcoin-cash/transaction/bcbd439c8357f70c811926979fc3f91b564aa4b04f1b693565d31578f4b6a7e3
+2026-11-16T03:28:30.633Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:28:36.890Z order utxos: bcbd439c83:2 36000 | paused utxos: none | subscriber coins: f56cc6293c:3 1357770
+2026-11-16T03:28:40.861Z CANCELLED a68c39cb4df5e71eb7d3e3f2ecddc70c4569ffdc8f70192f113b8dfbb81ce9f9 https://blockchair.com/bitcoin-cash/transaction/a68c39cb4df5e71eb7d3e3f2ecddc70c4569ffdc8f70192f113b8dfbb81ce9f9
+DONE 2026-11-16T03:28:40Z
+2026-11-16T03:28:46.113Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:28:52.009Z height 977563 | order utxos: none | paused utxos: none
+2026-11-16T03:28:53.757Z subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza a68c39cb4d:0 1391770
+2026-11-16T03:28:55.726Z merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd 57dbfffb83:0 10000, 83989cdd83:0 10000, f56cc6293c:0 10000, bcbd439c83:0 10000
+2026-11-16T03:28:57.579Z split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe 57dbfffb83:1 1000, 83989cdd83:1 1000, f56cc6293c:1 1000, bcbd439c83:1 1000
+2026-11-16T03:29:59.953Z order bitcoincash:pwz68enmzkwje6nu6f78wflmc0syxsc6aepmqze46f5h6den33j8u6vrf834k | paused bitcoincash:pdrzl223vju8v3eraltuuy32jgy04vsa4aapgxee0qdutd4zeldqkcgutyfsr | subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza | merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd | split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe
+2026-11-16T03:30:05.307Z height 977564 | order utxos: none | paused utxos: none
+2026-11-16T03:30:07.106Z subscriber bitcoincash:qrddpp6vjr6fgp4rtuawae2qmm2ccmglzgg7rsxaza a68c39cb4d:0 1391770
+2026-11-16T03:30:08.919Z merchant bitcoincash:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqzu59g5rd 57dbfffb83:0 10000, 83989cdd83:0 10000, f56cc6293c:0 10000, bcbd439c83:0 10000
+2026-11-16T03:30:10.850Z split bitcoincash:qps5e2r0jj6tkjvekgg2p0j28wvzyrpc2uzh8tejwe 57dbfffb83:1 1000, 83989cdd83:1 1000, f56cc6293c:1 1000, bcbd439c83:1 1000

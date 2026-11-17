@@ -5,6 +5,7 @@
 //              on virtual coins chained from each built tx, every step VM-evaluated; nothing is broadcast
 //   simulate-plan  the same for a plan change: fund -> claim -> changeplan -> claim on plan 2 -> cancel plan 2
 //   changeplan moves the live order's whole balance to PLAN 2 (double price, order id MAINNET2), signed by merchant AND subscriber
+//   --hex      with --dry: write the raw tx hex to HEX_OUT (default claim_raw.hex) for broadcast by anyone, anywhere
 //   --plan2    status / claim / pause / resume / topup / cancel act on the plan-2 order instead
 // Keys: BLAZE wizard seed (SEED_FILE, never printed). Subscriber = the wizard wallet's receive key m/44'/145'/0'/0/0
 // (bitcoincash:qrddpp..xaza, which holds the BCH), merchant m/44'/145'/0'/9/1, split payee 9/2 (all ours).
@@ -34,6 +35,8 @@ const log = (...a) => { const l = [new Date().toISOString(), ...a].join(" "); co
 const fmt = (u) => u.map((x) => `${x.txid.slice(0, 10)}:${x.vout} ${x.satoshis}`).join(", ") || "none";
 const args = process.argv.slice(2); const DRY = args.includes("--dry"); const [cmd, arg] = args.filter((a) => !a.startsWith("--"));
 const SIM = cmd === "simulate" || cmd === "simulate-plan";
+// --hex (with --dry): also write the signature-free raw claim to HEX_OUT so a third party can broadcast it with any tool
+const HEX = args.includes("--hex"), HEX_OUT = process.env.HEX_OUT || "claim_raw.hex";
 const txidOf = (hex) => binToHex(hash256(hexToBin(hex)).reverse());
 
 // one step = a TransactionBuilder; dry/sim: VM-evaluate + report; live: broadcast
@@ -43,6 +46,7 @@ const run = async (label, b) => {
       b.debug(); const hex = b.build(); const ins = b.inputs.reduce((s, i) => s + BigInt(i.satoshis), 0n);
       const outs = b.outputs.reduce((s, o) => s + BigInt(o.amount), 0n);
       log(`${label} OK (not broadcast) size ${hex.length / 2} B fee ${ins - outs} sats outputs [${b.outputs.map((o) => o.amount).join(", ")}]`);
+      if (HEX && !SIM) { fs.writeFileSync(HEX_OUT, hex + "\n"); console.log(`RAW TX HEX (${hex.length / 2} B, txid ${txidOf(hex)}) written to ${HEX_OUT}; anyone can broadcast it`); }
       return { txid: txidOf(hex), outs: b.outputs };
     }
     const r = await b.send(); log(label, r.txid, `https://blockchair.com/bitcoin-cash/transaction/${r.txid}`); return { txid: r.txid, outs: b.outputs };
