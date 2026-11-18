@@ -5,8 +5,9 @@
 **Subscriptions that pay themselves, on Bitcoin Cash.** Live: https://standing-order.swiftbotlab.workers.dev/
 
 **Cancelled means cancelled.** The coins carry the rules, not the company: one payment a period, never early, never more, and
-when you cancel, everything not yet paid comes back. No server of ours holds a key; if our site went dark tomorrow, every order
-would keep working. Three moments on mainnet, with real BCH:
+when you cancel, everything not yet paid comes back. No server of ours holds a key; if our site went dark, every order
+would keep its rules: anyone can still trigger a payment, the subscriber can still cancel with the MIT scripts in this repo, and
+the order list is public JSON ([/api/orders/all](https://standing-order.swiftbotlab.workers.dev/api/orders/all)). Three moments on mainnet, with real BCH:
 
 | | |
 |---|---|
@@ -103,11 +104,12 @@ Sizes: 1,005 bytes (order) and 274 bytes (paused) with their arguments; v2 claim
 mapping is the on-chain subscriber register, a covenant loop collects up to 16 members in one transaction with one payout to the
 merchant, a catch-up collects missed periods, deposits sit in the satoshi container, an absolute timelock (`tx.time`) sets each
 member's due block, and `withdraw` / `leave` can only pay the member back (`tx.origin` + `checkSig`). **Key loss** (v2): each member names
-a recovery address; if they lose their key, the merchant can release their unspent periods only to that address. Syntax used besides:
-a `library`, an `enum` in an event, an `abstract contract` base, custom `error`s with `revert` (a plain failing script on chain). 14 tests, 14 planted controls,
+a recovery address; if they lose their key, the merchant can release their unspent periods only to that address. **Pause / resume**
+(v3): while paused nothing can be collected; resuming never charges the paused time. Syntax used besides:
+a `library`, an `enum` in an event, an `abstract contract` base, custom `error`s with `revert` (a plain failing script on chain). 16 tests, 18 planted controls,
 and a full run on **mainnet** (deploy, two members, a two-member collect, a catch-up, a withdraw, a leave; a collect tried before
 the next period was refused): [v1 txids](pool/README.md#on-mainnet-v1-the-contract-in-contractsv1); v2 on mainnet including a key-loss release to
-the recovery address: [v2 txids](pool/README.md#on-mainnet-v2-17-nov).
+the recovery address: [v2 txids](pool/README.md#on-mainnet-v2-17-nov-the-contract-in-contractsv2).
 
 ## Built in the BLAZE window (14-22 Nov) vs. before kick-off
 The tag `pre-kickoff` (14 Nov, 13:35 UTC, before the 14:00 UTC start) is the base; everything below it is new in the window.
@@ -227,7 +229,7 @@ them (all of them pass against the earlier version). The app and relayer also ig
 (dust, foreign tokens, NFTs), so nobody can block a claim or a cancel that way.
 
 ## Security review of v2 (15 Nov)
-An independent adversarial review found no way to take funds. It found four weaknesses, all fixed with tests that run
+A separate adversarial review (internal, by a reviewer that did not write the contract; not an outside audit) found no way to take funds. It found four weaknesses, all fixed with tests that run
 the attack on the 2026 VM (`test/review_v2.test.ts`):
 1. anyone could attach a newly minted token to the order coin, which made apps treat the order as gone: order coins
    must now carry no token, and the app and relayer pick the order coin by value;

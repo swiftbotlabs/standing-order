@@ -17,10 +17,16 @@ MUT = {
   'anyone can release': ('        if (hash160(mpk) != merchant) revert NotTheMerchant(hash160(mpk));\n', ''),
   'release to the merchant': ('this.transfer(new LockingBytecodeP2PKH(recovery), periods * price);', 'this.transfer(new LockingBytecodeP2PKH(merchant), periods * price);'),
   'release more than left': ('if (periods < 1 || periods > left) revert BadPeriods(periods, left);', 'if (periods < 1) revert BadPeriods(periods, left);'),
+  'pause does not stop collect': ('        this.members[subscriber] = 0 - rec;\n', '        this.members[subscriber] = rec;\n'),
+  'anyone can pause': ('        require(hash160(pk) == subscriber, "only the member can pause");\n', ''),
+  'anyone can resume': ('        require(hash160(pk) == subscriber, "only the member can resume");\n', ''),
+  'resume moves the due height earlier': ('        require(from >= PoolRecord.nextDue(0 - stored), "cannot move the due height earlier");\n', ''),
   'anyone can set recovery': ('        require(hash160(pk) == subscriber, "only the member can change the recovery address");\n', ''),
 }
 ok = True
+ONLY = [x for x in os.environ.get('ONLY', '').split('|') if x]
 for name, (a, b) in MUT.items():
+    if ONLY and name not in ONLY: continue
     assert SRC.count(a) == 1, name
     d = tempfile.mkdtemp(prefix='pc_', dir=TMP); f = os.path.join(d, 'pool.scash'); open(f, 'w').write(SRC.replace(a, b))
     r = subprocess.run(['npx', '--no-install', 'vitest', 'run', '-c', 'vitest.config.mjs'], env={**os.environ, 'POOL_SCASH': f}, capture_output=True, text=True)

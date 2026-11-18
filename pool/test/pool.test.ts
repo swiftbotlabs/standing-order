@@ -39,6 +39,10 @@ const release = (ctx: Ctx, signer: any, who: any, periods: bigint, transfer?: [U
   if (transfer) c = c.transfer(transfer[0], transfer[1]);
   return c.send();
 };
+const pause = (ctx: Ctx, signer: any, who: any) =>
+  ctx.pool.connect(signer).call.pause(pkh(who), signer.publicKey, new SignatureTemplate(signer.privateKey)).send();
+const resume = (ctx: Ctx, signer: any, who: any, from: bigint, locktime = Number(from)) =>
+  withLocktime(locktime, () => ctx.pool.connect(signer).call.resume(pkh(who), from, signer.publicKey, new SignatureTemplate(signer.privateKey)).setLocktime(locktime).send());
 const setRecovery = (ctx: Ctx, signer: any, who: any, recovery: any) =>
   ctx.pool.connect(signer).call.setRecovery(pkh(who), pkh(recovery), signer.publicKey, new SignatureTemplate(signer.privateKey)).send();
 // `locktime` = the tx's nLockTime (what the chain has reached, from the covenant's view); `transfer` = a manual
@@ -247,5 +251,44 @@ describe('StandingOrderPool: key loss (recovery address)', () => {
     const c0 = await sats(ctx, ctx.carol);
     expect(await outcome(release(ctx, ctx.merchant, ctx.alice, 2n))).toBe('accepted');
     expect(await sats(ctx, ctx.carol) - c0).toBe(2n * PRICE);
+  });
+});
+
+describe('StandingOrderPool: pause and resume', () => {
+  it('a paused member cannot be collected from; resume moves the next due height on and collection continues', async () => {
+    const ctx = await setup();
+    await subscribe(ctx, ctx.alice, 3n);
+    const due = (await rec(ctx, ctx.alice)) / K;
+    expect(await outcome(pause(ctx, ctx.alice, ctx.alice))).toBe('accepted');
+    expect(await rec(ctx, ctx.alice)).toBe(-(due * K + 3n));                                       // stored negated while paused
+    expect(await outcome(collect(ctx, ctx.mallory, [ctx.alice], due))).not.toBe('accepted');        // due, but paused
+    await ctx.provider.mine(10);
+    const now = BigInt(await height(ctx));
+    expect(await outcome(resume(ctx, ctx.alice, ctx.alice, due - 1n))).not.toBe('accepted');      // earlier than it was due
+    expect(await outcome(resume(ctx, ctx.alice, ctx.alice, now + 5n, Number(now)))).not.toBe('accepted'); // a future height (CLTV)
+    expect(await outcome(resume(ctx, ctx.alice, ctx.alice, now))).toBe('accepted');
+    expect(await rec(ctx, ctx.alice)).toBe(now * K + 3n);                                          // paused time not charged
+    const m0 = await sats(ctx, ctx.merchant);
+    expect(await outcome(collect(ctx, ctx.mallory, [ctx.alice], now))).toBe('accepted');
+    expect(await sats(ctx, ctx.merchant) - m0).toBe(PRICE);
+  });
+
+  it('only the member can pause or resume; a paused member can still be released to the recovery address', async () => {
+    const ctx = await setup();
+    await subscribe(ctx, ctx.carol, 6n);                             // a big coin in the pool
+    await subscribe(ctx, ctx.alice, 3n, ctx.alice, ctx.bob);
+    expect(await outcome(pause(ctx, ctx.mallory, ctx.alice))).not.toBe('accepted');
+    expect(await outcome(pause(ctx, ctx.merchant, ctx.alice))).not.toBe('accepted');
+    expect(await outcome(pause(ctx, ctx.alice, ctx.alice))).toBe('accepted');
+    expect(await outcome(pause(ctx, ctx.alice, ctx.alice))).not.toBe('accepted');                  // already paused
+    const now = BigInt(await height(ctx));
+    expect(await outcome(resume(ctx, ctx.mallory, ctx.alice, now))).not.toBe('accepted');
+    const b0 = await sats(ctx, ctx.bob);
+    expect(await outcome(release(ctx, ctx.merchant, ctx.alice, 1n))).toBe('accepted');             // key lost while paused
+    expect(await rec(ctx, ctx.alice) < 0n).toBe(true);                                            // still paused, 2 left
+    expect((-(await rec(ctx, ctx.alice))) % K).toBe(2n);
+    expect(await outcome(release(ctx, ctx.merchant, ctx.alice, 2n))).toBe('accepted');
+    expect(await sats(ctx, ctx.bob) - b0).toBe(3n * PRICE);
+    expect(await rec(ctx, ctx.alice)).toBe(0n);
   });
 });

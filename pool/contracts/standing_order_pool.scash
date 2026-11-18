@@ -22,7 +22,8 @@ pragma solidcash ^0.51.0;
 //     member's signature). If the member loses their key, the merchant can `release` the unspent periods, but only to
 //     that recovery address: the merchant gives up income and can never take a member's money for themselves.
 
-// The packed member record: nextDue * 65536 + periodsLeft.
+// The packed member record: nextDue * 65536 + periodsLeft, stored negated while the member has paused (so every rule that
+// requires an active record, collect first of all, refuses a paused member without another lookup).
 library PoolRecord {
     function pack(int nextDue, int periodsLeft) internal pure returns (int) { return nextDue * 65536 + periodsLeft; }
     function nextDue(int rec) internal pure returns (int) { return rec / 65536; }
@@ -30,7 +31,7 @@ library PoolRecord {
 }
 
 // Every change to a membership, in one event the merchant's books can follow.
-enum Move { Subscribed, ToppedUp, Withdrawn, Released, RecoveryChanged, Left }
+enum Move { Subscribed, ToppedUp, Withdrawn, Released, RecoveryChanged, Left, Paused, Resumed }
 
 // What every pool plan shares: its errors, its membership event, and the whole-periods rule for deposits.
 abstract contract PoolTerms {
@@ -81,7 +82,7 @@ contract StandingOrderPool(bytes20 merchant, int price, int period) is PoolTerms
     // Add whole periods to a member's budget (anyone may pay for someone).
     function topUp(bytes20 subscriber) payable wholePeriods(msg.value, price) {
         int rec = this.members[subscriber];
-        if (rec == 0) revert NotAMember(subscriber);
+        require(rec > 0, "not an active member");
         int deposit = msg.value;
         require(PoolRecord.periodsLeft(rec) + deposit / price < 65536, "too many periods");
         this.members[subscriber] = rec + deposit / price;
@@ -151,8 +152,9 @@ contract StandingOrderPool(bytes20 merchant, int price, int period) is PoolTerms
     function release(bytes20 subscriber, int periods, pubkey mpk, sig ms) {
         if (hash160(mpk) != merchant) revert NotTheMerchant(hash160(mpk));
         require(checkSig(ms, mpk), "bad signature");
-        int rec = this.members[subscriber];
-        if (rec == 0) revert NotAMember(subscriber);
+        int stored = this.members[subscriber];
+        if (stored == 0) revert NotAMember(subscriber);
+        int rec = stored < 0 ? 0 - stored : stored;   // a paused member can still be released (key lost while paused)
         int left = PoolRecord.periodsLeft(rec);
         if (periods < 1 || periods > left) revert BadPeriods(periods, left);
         bytes20 recovery = this.recoveryOf[subscriber];
@@ -161,10 +163,34 @@ contract StandingOrderPool(bytes20 merchant, int price, int period) is PoolTerms
             delete this.recoveryOf[subscriber];
             this.memberCount = this.memberCount - 1;
         } else {
-            this.members[subscriber] = rec - periods;
+            this.members[subscriber] = stored < 0 ? periods - rec : rec - periods;
         }
         this.transfer(new LockingBytecodeP2PKH(recovery), periods * price);
         emit MemberMoved(subscriber, Move.Released, periods * price);
+    }
+
+    // Pause (member signature, no money moves): no period can be collected until the member resumes.
+    function pause(bytes20 subscriber, pubkey pk, sig s) {
+        require(hash160(pk) == subscriber, "only the member can pause");
+        require(checkSig(s, pk), "bad signature");
+        int rec = this.members[subscriber];
+        require(rec > 0, "not an active member");
+        this.members[subscriber] = 0 - rec;
+        emit MemberMoved(subscriber, Move.Paused, 0);
+    }
+
+    // Resume (member signature): the next period becomes due at `from`, a height the chain has reached (CLTV) and never
+    // earlier than it was due before the pause, so the paused time is not charged and no period is skipped.
+    function resume(bytes20 subscriber, int from, pubkey pk, sig s) {
+        require(hash160(pk) == subscriber, "only the member can resume");
+        require(checkSig(s, pk), "bad signature");
+        int stored = this.members[subscriber];
+        require(stored < 0, "not paused");
+        require(from > 0 && from < 500000000, "from must be a block height");
+        require(tx.time >= from, "from is in the future");
+        require(from >= PoolRecord.nextDue(0 - stored), "cannot move the due height earlier");
+        this.members[subscriber] = PoolRecord.pack(from, PoolRecord.periodsLeft(0 - stored));
+        emit MemberMoved(subscriber, Move.Resumed, from);
     }
 
     // A member whose prepaid periods are all used up ends the membership (record deleted). Only the member, by

@@ -16,6 +16,7 @@ One stateful covenant per merchant plan that keeps every subscriber's budget, in
 | `library` with `internal pure` functions | `PoolRecord.pack / nextDue / periodsLeft`: the packed member record |
 | `enum` in an event | `Move { Subscribed, ToppedUp, Withdrawn, Released, RecoveryChanged, Left }` in `MemberMoved` |
 | `abstract contract` + inheritance (`is`) | `PoolTerms`: errors, the `MemberMoved` event and the `wholePeriods` modifier, inherited by the pool |
+| pause / resume on the packed record | `pause` stores the record negated (every rule that needs an active member, `collect` first, then refuses it with no extra lookup); `resume` moves the due height on, never earlier |
 | custom `error`s + `revert` | `NotAMember`, `NotTheMerchant`, `BadPeriods` |
 | `mapping(bytes20 => bytes20)` | `recoveryOf`: each member's recovery address |
 
@@ -33,15 +34,23 @@ change it with a signature (`setRecovery`). If the member loses their key, the m
 if needed, **only to that recovery address**: the covenant pays nowhere else, so the merchant can only give up income, never take a
 member's money. Without the merchant, the prepaid periods simply keep paying the merchant as before.
 
+## Pause and resume (v3, 18 Nov)
+A member can pause (by signature, no money moves): while paused, no period can be collected. `resume(from)` makes the next period
+due at `from`, a height the chain has reached (CLTV) and never earlier than it was due before the pause, so the paused time is not
+charged and nothing is skipped. A member who loses their key while paused can still be released to their recovery address. To keep
+the contract under the 10,000-byte input-script limit (a separate `paused` mapping took it to 10,939 bytes), the pause flag is the
+sign of the stored record. Top-up, withdraw and leave need an active (resumed) member.
+
 ## Tests
-`npx --no-install vitest run -c vitest.config.mjs`: 14 tests on the production mock network (subscribe, caps on deposits, top-up,
+`npx --no-install vitest run -c vitest.config.mjs`: 16 tests on the production mock network (subscribe, caps on deposits, top-up,
 collect never early, a final transaction lying about `due` is refused by the CLTV, batch of three in one tx, catch-up, no budget left,
 redirect and inflate attempts, withdraw/leave only by the member, fragmented-pool liveness, release only by the merchant and only
-to the recovery address, recovery address changed only by the member).
-`python3 scripts/planted_controls.py`: 14 weakened copies of the contract, each must turn the suite red (all do).
+to the recovery address, recovery address changed only by the member, pause blocks collect, resume never moves the due height
+earlier or to a future height, only the member pauses or resumes, release of a paused member).
+`python3 scripts/planted_controls.py`: 18 weakened copies of the contract, each must turn the suite red (all do).
 `node scripts/pool_run.mjs simulate`: the mainnet sequence on a mock chain.
 
-## On mainnet (v2, 17 Nov)
+## On mainnet (v2, 17 Nov; the contract in `contracts/v2/`)
 Run with our own keys, contract `bitcoincash:pvfw6fhv3rp925ejjrqshy75afuwaak0kuvtf35a05y8vdqq07wujd2a8mej2`
 (log: [pool_v2_mainnet.log](pool_v2_mainnet.log)). The release went to member 2's recovery address
 `bitcoincash:qq63ztxw24rnv4l66v64a70gkj3rk053sy2n742xyd`, a different key from the member's and the merchant's.

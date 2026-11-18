@@ -36,6 +36,6 @@ while paused). No server, relayer or website ever holds a key that can move it.
 - Losing the subscriber key locks cancel, pause and resume; claims still pay the merchant until the balance runs out.
 - v1 orders funded before v2 can carry a minted token on their first claim's change; the app and relayer handle it (documented test).
 
-**Reviews.** Two adversarial reviews of v1 (14 Nov) and one of v2 (15 Nov): no theft path found; every weakness found is fixed
+**Reviews.** Two adversarial reviews of v1 (14 Nov) and one of v2 (15 Nov), internal (each by a reviewer that did not write the contract; not an outside audit): no theft path found; every weakness found is fixed
 and has a regression test. Proven on mainnet: subscribe, split claim, pause, resume, top up, plan change, claim at the new
 price and cancel, with real BCH (txids in the README).
