@@ -17,6 +17,7 @@ the order list is public JSON ([/api/orders/all](https://standing-order.swiftbot
 
 **Watch it on mainnet (36 s):** [the walkthrough](https://standing-order.swiftbotlab.workers.dev/film/walk60.mp4): a merchant makes a pay link, a wallet
 subscribes with one approval, the relayer pays the merchant one period, the subscriber cancels and gets the rest back (real BCH, the live site).
+**Run the tests:** `npm ci && npx --no-install solidhat test` (77 solidhat tests) · `cd pool && npm ci && npx --no-install vitest run -c vitest.config.mjs` (16 Pool tests) = 93.
 **Watch the 17-second film:** [Coins with rules](https://standing-order.swiftbotlab.workers.dev/film/) (also on [YouTube Shorts](https://youtube.com/shorts/p8m_4ubXscg)).
 
 A subscriber funds a standing order once. The merchant can take one period's amount per period, never more and never

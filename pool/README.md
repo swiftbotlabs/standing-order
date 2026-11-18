@@ -33,6 +33,9 @@ Each member names a recovery address when joining: another wallet of their own (
 change it with a signature (`setRecovery`). If the member loses their key, the merchant can `release` the unspent periods, in parts
 if needed, **only to that recovery address**: the covenant pays nowhere else, so the merchant can only give up income, never take a
 member's money. Without the merchant, the prepaid periods simply keep paying the merchant as before.
+**Trust, stated plainly:** the merchant can end a membership early (the refund goes to the recovery address) but cannot take a
+member's money; the member trusts the merchant not to release without reason, and must keep the recovery wallet safe, since whoever
+holds it receives a release.
 
 ## Pause and resume (v3, 18 Nov)
 A member can pause (by signature, no money moves): while paused, no period can be collected. `resume(from)` makes the next period
