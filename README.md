@@ -14,6 +14,8 @@ would keep working. Three moments on mainnet, with real BCH:
 | **A stranger can collect, nobody can steal** | a signature-free claim built offline and broadcast through a public block explorer, not our relayer, paid exactly what the plan says: [cba7e44a](https://blockchair.com/bitcoin-cash/transaction/cba7e44a1cc53762890bbd7a4d5fbfd05e7a0670432113a05ce9430e8c35b1be) |
 | **Cancel, and the money comes home** | one transaction returns the unclaimed balance: [a68c39cb](https://blockchair.com/bitcoin-cash/transaction/a68c39cb4df5e71eb7d3e3f2ecddc70c4569ffdc8f70192f113b8dfbb81ce9f9) (BCH), [aa3a8aa6](https://blockchair.com/bitcoin-cash/transaction/aa3a8aa6cc382b3178b8fa421420212c8d812acf1d95aeb52c217c71b0971607) (PUSD) |
 
+**Watch it on mainnet (36 s):** [the walkthrough](https://standing-order.swiftbotlab.workers.dev/film/walk60.mp4): a merchant makes a pay link, a wallet
+subscribes with one approval, the relayer pays the merchant one period, the subscriber cancels and gets the rest back (real BCH, the live site).
 **Watch the 17-second film:** [Coins with rules](https://standing-order.swiftbotlab.workers.dev/film/) (also on [YouTube Shorts](https://youtube.com/shorts/p8m_4ubXscg)).
 
 A subscriber funds a standing order once. The merchant can take one period's amount per period, never more and never
