@@ -109,7 +109,8 @@ a recovery address; if they lose their key, the merchant can release their unspe
 a `library`, an `enum` in an event, an `abstract contract` base, custom `error`s with `revert` (a plain failing script on chain). 16 tests, 18 planted controls,
 and a full run on **mainnet** (deploy, two members, a two-member collect, a catch-up, a withdraw, a leave; a collect tried before
 the next period was refused): [v1 txids](pool/README.md#on-mainnet-v1-the-contract-in-contractsv1); v2 on mainnet including a key-loss release to
-the recovery address: [v2 txids](pool/README.md#on-mainnet-v2-17-nov-the-contract-in-contractsv2).
+the recovery address: [v2 txids](pool/README.md#on-mainnet-v2-17-nov-the-contract-in-contractsv2); v3 on mainnet with a pause, a refused collect
+from the paused member, and a resume: [v3 txids](pool/README.md#on-mainnet-v3-18-nov-pause-and-resume).
 
 ## Built in the BLAZE window (14-22 Nov) vs. before kick-off
 The tag `pre-kickoff` (14 Nov, 13:35 UTC, before the 14:00 UTC start) is the base; everything below it is new in the window.

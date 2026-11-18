@@ -1,0 +1,16 @@
+2026-11-18T05:46:54.657Z FUND2 60000 to sub2 a725663f5eca21213dc5e6c08317948a2a2bd9aaceba34178b11d733953485e6 https://blockchair.com/bitcoin-cash/transaction/a725663f5eca21213dc5e6c08317948a2a2bd9aaceba34178b11d733953485e6
+2026-11-18T05:47:03.113Z PREP not needed: vout-0 coin a725663f5e:0 1010568
+2026-11-18T05:47:20.467Z DEPLOYED category a725663f5eca21213dc5e6c08317948a2a2bd9aaceba34178b11d733953485e6 tx 50ce1b7b26fb9ad07d74da81a7ffd1a05d803076138482d7fecf544c9ab517b2
+2026-11-18T05:47:48.687Z SUBSCRIBE sub 4 periods 394487bc7e623c894c07d80ba2e1eaec073685be5712771e4676db7f4a3b82f3 https://blockchair.com/bitcoin-cash/transaction/394487bc7e623c894c07d80ba2e1eaec073685be5712771e4676db7f4a3b82f3
+2026-11-18T05:48:14.132Z SUBSCRIBE sub2 4 periods 29c1ebd3b62cd49e6352e1b4f600962ae23db5504db9bec3e9c516406fd9a767 https://blockchair.com/bitcoin-cash/transaction/29c1ebd3b62cd49e6352e1b4f600962ae23db5504db9bec3e9c516406fd9a767
+2026-11-18T05:48:55.697Z COLLECT 1 period(s) from sub+sub2 5a306c5bc686967c3c920485833cb6139ff1cc7a3cbaa5967b8a744c4009500e https://blockchair.com/bitcoin-cash/transaction/5a306c5bc686967c3c920485833cb6139ff1cc7a3cbaa5967b8a744c4009500e
+2026-11-18T05:49:09.523Z height 977844 members 2 paidTotal 4000 pool coins [4000, 1000, 8000] {"sub":"nextDue 977845 left 3","sub2":"nextDue 977845 left 3"}
+2026-11-18T06:05:36.600Z COLLECT 1 period(s) from sub+sub2 8059dc1a42f5089021ac12ff609b59943c9d52d3de8afe45d469ff326c4ddaf5 https://blockchair.com/bitcoin-cash/transaction/8059dc1a42f5089021ac12ff609b59943c9d52d3de8afe45d469ff326c4ddaf5
+2026-11-18T06:25:15.563Z COLLECT 2 period(s) from sub e3ba61447bcfe4ea9667760bf1cc724b2a578b282bc6ab14e31f1750776d91a0 https://blockchair.com/bitcoin-cash/transaction/e3ba61447bcfe4ea9667760bf1cc724b2a578b282bc6ab14e31f1750776d91a0
+2026-11-18T06:25:45.133Z PAUSE sub2 0d84fe5a1bb8a404b87f123450cf1e5e307fa0e50f8324a6318d2472af70923e https://blockchair.com/bitcoin-cash/transaction/0d84fe5a1bb8a404b87f123450cf1e5e307fa0e50f8324a6318d2472af70923e
+2026-11-18T06:26:08.757Z COLLECT REFUSED: VM failed at ip 195 opcode 118: Program failed an OP_VERIFY operation.; input 0; require: not a member
+2026-11-18T06:27:43.936Z RESUME sub2 from 977848 35a8c62ea5863156fa34dc4ce49e71a5331eb70bd032a6af7ada785cff3b194e https://blockchair.com/bitcoin-cash/transaction/35a8c62ea5863156fa34dc4ce49e71a5331eb70bd032a6af7ada785cff3b194e
+2026-11-18T06:28:08.248Z WITHDRAW sub2 1 d994e41126eec44d8a782ff265e6424105c87c516a4f44d5d9d1f3958231b183 https://blockchair.com/bitcoin-cash/transaction/d994e41126eec44d8a782ff265e6424105c87c516a4f44d5d9d1f3958231b183
+2026-11-18T06:28:47.431Z RELEASE sub2 1 to recovery bitcoincash:qq63ztxw24rnv4l66v64a70gkj3rk053sy2n742xyd 9cac35800ce85d2a99e3996d03294f05ce57559c81bf62827606649847ba0406 https://blockchair.com/bitcoin-cash/transaction/9cac35800ce85d2a99e3996d03294f05ce57559c81bf62827606649847ba0406
+2026-11-18T06:29:07.503Z LEAVE sub ce5b37ae61e748d83683ff859cd6614e490679c8060a625af03149ac4be2e607 https://blockchair.com/bitcoin-cash/transaction/ce5b37ae61e748d83683ff859cd6614e490679c8060a625af03149ac4be2e607
+2026-11-18T06:29:23.147Z height 977848 members 0 paidTotal 12000 pool coins [1000] {"sub":"not a member","sub2":"not a member"}

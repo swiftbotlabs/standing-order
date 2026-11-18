@@ -50,6 +50,26 @@ earlier or to a future height, only the member pauses or resumes, release of a p
 `python3 scripts/planted_controls.py`: 18 weakened copies of the contract, each must turn the suite red (all do).
 `node scripts/pool_run.mjs simulate`: the mainnet sequence on a mock chain.
 
+## On mainnet (v3, 18 Nov: pause and resume)
+Run with our own keys (log: [pool_v3_mainnet.log](pool_v3_mainnet.log)); the release went to member 2's recovery address
+`bitcoincash:qq63ztxw24rnv4l66v64a70gkj3rk053sy2n742xyd`.
+
+| Step | Transaction | Block | Size |
+|---|---|---|---|
+| deploy the v3 pool (2,000 sats per 1-block period) | [50ce1b7b](https://blockchair.com/bitcoin-cash/transaction/50ce1b7b26fb9ad07d74da81a7ffd1a05d803076138482d7fecf544c9ab517b2) | 977845 | 906 B |
+| member 1 subscribes, 4 periods | [394487bc](https://blockchair.com/bitcoin-cash/transaction/394487bc7e623c894c07d80ba2e1eaec073685be5712771e4676db7f4a3b82f3) | 977845 | 11,498 B |
+| member 2 subscribes, 4 periods | [29c1ebd3](https://blockchair.com/bitcoin-cash/transaction/29c1ebd3b62cd49e6352e1b4f600962ae23db5504db9bec3e9c516406fd9a767) | 977845 | 11,395 B |
+| collect from both members in one transaction | [5a306c5b](https://blockchair.com/bitcoin-cash/transaction/5a306c5bc686967c3c920485833cb6139ff1cc7a3cbaa5967b8a744c4009500e) | 977845 | 10,981 B |
+| next period: collect from both again | [8059dc1a](https://blockchair.com/bitcoin-cash/transaction/8059dc1a42f5089021ac12ff609b59943c9d52d3de8afe45d469ff326c4ddaf5) | 977846 | 10,981 B |
+| catch-up: two periods from member 1 | [e3ba6144](https://blockchair.com/bitcoin-cash/transaction/e3ba61447bcfe4ea9667760bf1cc724b2a578b282bc6ab14e31f1750776d91a0) | 977848 | 10,625 B |
+| **member 2 pauses** (a collect from member 2 right after was refused: `require: not a member`, nothing broadcast) | [0d84fe5a](https://blockchair.com/bitcoin-cash/transaction/0d84fe5a1bb8a404b87f123450cf1e5e307fa0e50f8324a6318d2472af70923e) | 977848 | 9,802 B |
+| **member 2 resumes** (next period due from the resume height) | [35a8c62e](https://blockchair.com/bitcoin-cash/transaction/35a8c62ea5863156fa34dc4ce49e71a5331eb70bd032a6af7ada785cff3b194e) | 977849 | 10,175 B |
+| member 2 withdraws 1 period | [d994e411](https://blockchair.com/bitcoin-cash/transaction/d994e41126eec44d8a782ff265e6424105c87c516a4f44d5d9d1f3958231b183) | 977849 | 11,232 B |
+| key-loss path: the merchant releases member 2's last period to the recovery address | [9cac3580](https://blockchair.com/bitcoin-cash/transaction/9cac35800ce85d2a99e3996d03294f05ce57559c81bf62827606649847ba0406) | 977849 | 11,083 B |
+| member 1 leaves | [ce5b37ae](https://blockchair.com/bitcoin-cash/transaction/ce5b37ae61e748d83683ff859cd6614e490679c8060a625af03149ac4be2e607) | 977849 | 10,582 B |
+
+Final state: 0 members, paidTotal 12,000 sats, one 1,000-sat pool coin left. Each v3 call is 9.8-11.5 KB.
+
 ## On mainnet (v2, 17 Nov; the contract in `contracts/v2/`)
 Run with our own keys, contract `bitcoincash:pvfw6fhv3rp925ejjrqshy75afuwaak0kuvtf35a05y8vdqq07wujd2a8mej2`
 (log: [pool_v2_mainnet.log](pool_v2_mainnet.log)). The release went to member 2's recovery address
