@@ -58,9 +58,28 @@ export class WizardSession {
     return relay.uri;
   }
 
-  async sign(wc: unknown, inputPaths: [number, string, number][]): Promise<string> {
-    if (!this.mgr || !this.wallet) throw new Error('Connect a wallet first.');
-    const r: any = await this.mgr.signTransaction({ transaction: wc as any, inputPaths } as any);
+  // Sends the sign request and waits for the wallet's answer. The library's signTransaction() gives up when the relays do not
+  // confirm the publish within ~8 s, although the request usually reached the wallet (mainnet capture 17 Nov: the wallet signed
+  // 1.5 s after the page had given up). So a slow publish is not a failure here: the request stays pending and the wallet's
+  // answer resolves it (the manager also re-sends pending requests after a reconnect). Only no answer at all times out.
+  async sign(wc: unknown, inputPaths: [number, string, number][], waitMs = 180_000): Promise<string> {
+    const mgr: any = this.mgr;
+    if (!mgr || !this.wallet) throw new Error('Connect a wallet first.');
+    const sequence = mgr.nextSequence();
+    const request = { action: 'sign_transaction_request', time: Math.floor(Date.now() / 1000), sequence, transaction: wc, inputPaths };
+    const r: any = await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        mgr.pendingSignatureRequests.delete(sequence);
+        reject(new Error('No answer from your wallet within 3 minutes. If it shows the request, approve it and press the button again.'));
+      }, waitMs);
+      mgr.pendingSignatureRequests.set(sequence, {
+        request,
+        resolve: (v: unknown) => { clearTimeout(timer); resolve(v); },
+        reject: (e: unknown) => { clearTimeout(timer); reject(e); },
+      });
+      mgr.conn.relay(request).then(() => mgr.emit('messagesent', request))
+        .catch((e: unknown) => console.warn('[standing-order] relay did not confirm the sign request in time; still waiting for the wallet', e));
+    });
     if (r?.error) throw new Error(`The wallet declined: ${r.error}`);
     if (!r?.signedTransaction) throw new Error('The wallet returned no transaction.');
     return r.signedTransaction;
