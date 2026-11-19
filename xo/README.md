@@ -34,9 +34,34 @@ Modelled on XO's `faucetCashTemplate` (same shape: a coin that waits a number of
 - cancel by the subscriber: valid; with a stranger's coin, or refunding the merchant: rejected.
 
 **XO engine** (`node --import ./lib/no-native.mjs demo.mjs import`): the engine (`@xo-cash/engine@0.1.1-next.18029697917`, chipnet)
-imports the template: actions `fund, claim, lastClaim, cancel`, roles `subscriber, merchant, service`.
+imports the template: actions `fund, claim, lastClaim, cancel`, roles `subscriber, merchant, service`. The invitations below were made with it.
 
-**Chipnet, built from the template** (`node demo.mjs fund 60000 | claim | cancel`; 20,000 sats per 1-block period, max fee 1,000):
+## Through XO invitations (chipnet)
+
+The whole order lifecycle, each step one **XO invitation** created, filled, signed and executed by the XO engine
+(`@xo-cash/engine@0.1.1-next.18029697917`) with this template. The invitations are saved in [`invitations/`](invitations/)
+(`serializeInvitation` output): paste one into the debug tool at [blaze.xo.cash](https://blaze.xo.cash) to inspect it.
+
+| # | Action (role) | Invitation | Transaction |
+|---|---|---|---|
+| 1 | `fund` (subscriber): 45,000 sats into the order; the engine picks the wallet's coins, adds change, signs | [1-fund.xo.json](invitations/1-fund.xo.json) | [6cac3b95…](https://chipnet.chaingraph.cash/tx/6cac3b95e9dba8ab6e8b67f1b70a242e704911c71d8590d04948280ce75e4c2f) |
+| 2 | `claim` (service: anyone, no key): 20,000 to the merchant, 24,000 back into the order | [2-claim.xo.json](invitations/2-claim.xo.json) | [ff9d539a…](https://chipnet.chaingraph.cash/tx/ff9d539a08d4ddbf21e5b5f7136ee5ea534f2e27668d6bdd761e87ae2f8ea5d4) |
+| 3 | `lastClaim` (service), the follow-up: too little left for another period, so the remainder minus the fee (23,000) goes to the merchant and the order ends | [3-lastClaim.xo.json](invitations/3-lastClaim.xo.json) | [90bd3f2d…](https://chipnet.chaingraph.cash/tx/90bd3f2d6847de02af165f083d027b639ec7a245bcb50e81846726e9f908be91) |
+
+Both claims were first refused by the node with `non-BIP68-final` (the order coin's relative timelock was not yet met in its view)
+and accepted on a retry a few minutes later: the period is enforced by the network, not by our code. `invitations/run.json` lists the steps with their times.
+
+Reproduce (chipnet; any BIP39 test mnemonic):
+```bash
+cd xo && npm ci
+export XO_MNEMONIC_FILE=<file with a test mnemonic>
+export MERCHANT_PKH=<20-byte hex> SUBSCRIBER_PKH=<20-byte hex>     # who is paid / who may cancel
+node --import ./lib/no-native.mjs invite.mjs   # prints the XO wallet address; send it ~50,000 chipnet sats; the script then
+                                               # waits for the coins, funds, waits one period, claims, waits, last-claims
+```
+Run it in one go: the demo keeps the XO state in memory (`fake-indexeddb`), so a restart forgets which coins the wallet tracks.
+
+**Also on chipnet, built directly from the template with libauth** (`node demo.mjs fund 60000 | claim | cancel`; 20,000 sats per 1-block period, max fee 1,000):
 
 | Step | Transaction |
 |---|---|
@@ -62,5 +87,7 @@ XO_MNEMONIC_FILE=<file> node --import ./lib/no-native.mjs demo.mjs import   # XO
 1. XO templates store scripts as strings while libauth templates use `{ script }` objects with `unlocks`; to test a template with libauth's
    compiler we had to wrap them (`lib/compiler.mjs`).
 2. `@xo-cash/state` imports native SQLite at load time even when IndexedDB storage is chosen.
-3. A covenant compiled by another toolchain (SolidCash) has no CashAssembly source; we embed its body as a hex literal after the argument
+3. A covenant input of a role that holds no key (anyone may trigger a claim) is only accepted once the engine tracks the order's
+   script hash; that tracking lives in the engine's state, so a fresh engine cannot claim an order it did not see funded.
+4. A covenant compiled by another toolchain (SolidCash) has no CashAssembly source; we embed its body as a hex literal after the argument
    pushes. A documented "bytecode + constructor args" pattern would make such ports easier.

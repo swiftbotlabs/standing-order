@@ -1,0 +1,29 @@
+{
+ "orderId": "27f9877068fbe704",
+ "steps": [
+  {
+   "n": 1,
+   "action": "fund",
+   "txid": "6cac3b95e9dba8ab6e8b67f1b70a242e704911c71d8590d04948280ce75e4c2f",
+   "invitation": "invitations/1-fund.xo.json",
+   "invitationIdentifier": "56caefdddc1e8de2eade3c701e05f911",
+   "at": "2026-11-19T10:46:52.333Z"
+  },
+  {
+   "n": 2,
+   "action": "claim",
+   "txid": "ff9d539a08d4ddbf21e5b5f7136ee5ea534f2e27668d6bdd761e87ae2f8ea5d4",
+   "invitation": "invitations/2-claim.xo.json",
+   "invitationIdentifier": "a3ca24bcb3921a866d4156c722d8b06e",
+   "at": "2026-11-19T10:58:05.211Z"
+  },
+  {
+   "n": 3,
+   "action": "lastClaim",
+   "txid": "90bd3f2d6847de02af165f083d027b639ec7a245bcb50e81846726e9f908be91",
+   "invitation": "invitations/3-lastClaim.xo.json",
+   "invitationIdentifier": "3d17a065172838ba160ef9e8a24ead1c",
+   "at": "2026-11-19T11:08:15.917Z"
+  }
+ ]
+}

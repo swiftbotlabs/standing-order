@@ -11,7 +11,7 @@ import { deriveHdPrivateNodeFromSeed, deriveHdPath, deriveHdPathRelative, derive
   bigIntToVmNumber, generateTransaction, encodeTransactionBch, encodeCashAddress, lockingBytecodeToCashAddress, swapEndianness, createVirtualMachineBch2026 } from "@bitauth/libauth";
 import { compiler, compile, template } from "./lib/compiler.mjs";
 
-const STATE = new URL("./demo-state.json", import.meta.url);
+const STATE = process.env.DEMO_STATE ? new URL("file://" + process.env.DEMO_STATE) : new URL("./demo-state.json", import.meta.url);
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 const [cmd, arg] = process.argv.slice(2);
 

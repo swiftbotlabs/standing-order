@@ -8,6 +8,11 @@ const { bodyHex } = JSON.parse(fs.readFileSync(new URL("./standing_order.body.js
 const CLAIM = "0xa443c5e4", CANCEL = "0x61d66248"; // function selectors from the solidc ABI
 
 const variable = (name, description, type) => ({ name, description, type });
+// XO: which roles track a locking script. The subscriber and any trigger (service) track the order coin so the engine can
+// spend it by its own rules; the merchant only receives.
+const ROLES = { subscriber: { relevant: false }, merchant: { relevant: false }, service: { relevant: false } };
+const ORDER_ROLES = { subscriber: { relevant: true }, merchant: { relevant: false }, service: { relevant: true } };
+const NO_BALANCE = { satoshis: 0n, fungibleTokens: 0n, nonfungibleTokens: 0 };
 
 export const standingOrderTemplate = {
   $schema: "https://libauth.org/schemas/wallet-template-v0.schema.json",
@@ -74,15 +79,15 @@ export const standingOrderTemplate = {
     orderFunding: { name: "Standing order", description: "The funded order.", icon: "standing-order", lockingScript: "standingOrderContract", valueSatoshis: "$(<fundSatoshis>)", token: null },
     merchantPayment: { name: "Merchant payment", description: "One period's payment.", icon: "merchant", lockingScript: "merchantLockingScript", valueSatoshis: "$(<amountPerPeriod>)", token: null },
     orderChange: { name: "Order remainder", description: "What is left stays in the order for the next periods.", icon: "standing-order", lockingScript: "standingOrderContract",
-      valueSatoshis: "$(remainingOrderSatoshis)", token: null, selectable: false },
+      valueSatoshis: "$(remainingOrderSatoshis)", token: null, selectable: false, roles: ROLES },
     merchantLastPayment: { name: "Merchant final payment", description: "The order's remainder minus the fee.", icon: "merchant", lockingScript: "merchantLockingScript", valueSatoshis: "$(lastPaymentSatoshis)", token: null },
     subscriberRefund: { name: "Refund", description: "Everything left, back to the subscriber.", icon: "subscriber", lockingScript: "subscriberLockingScript", valueSatoshis: "$(refundSatoshis)", token: null },
   },
   lockingScripts: {
     standingOrderContract: { name: "Standing Order covenant", description: "P2SH32 of the compiled StandingOrder contract with this order's arguments.", icon: "standing-order",
-      lockingType: "p2s", lockingBytecode: "standingOrderLockingBytecode", state: { variables: [], secrets: [] }, selectable: false },
-    merchantLockingScript: { name: "Merchant address", description: "P2PKH of the merchant.", icon: "merchant", lockingType: "p2s", lockingBytecode: "merchantLockingBytecode", state: { variables: [], secrets: [] }, selectable: false },
-    subscriberLockingScript: { name: "Subscriber address", description: "P2PKH of the subscriber.", icon: "subscriber", lockingType: "p2s", lockingBytecode: "subscriberLockingBytecode", state: { variables: [], secrets: [] }, selectable: false },
+      lockingType: "p2s", lockingBytecode: "standingOrderLockingBytecode", state: { variables: [], secrets: [] }, selectable: false, balance: NO_BALANCE, roles: ORDER_ROLES },
+    merchantLockingScript: { name: "Merchant address", description: "P2PKH of the merchant.", icon: "merchant", lockingType: "p2s", lockingBytecode: "merchantLockingBytecode", state: { variables: [], secrets: [] }, selectable: false, balance: NO_BALANCE, roles: ROLES },
+    subscriberLockingScript: { name: "Subscriber address", description: "P2PKH of the subscriber.", icon: "subscriber", lockingType: "p2s", lockingBytecode: "subscriberLockingBytecode", state: { variables: [], secrets: [] }, selectable: false, balance: NO_BALANCE, roles: ROLES },
   },
   scripts: {
     // <orderId> <maxFee> <period> <amountPerPeriod> <subscriber> <merchant> then the contract body (constructor args reversed, as solidcash pushes them)
