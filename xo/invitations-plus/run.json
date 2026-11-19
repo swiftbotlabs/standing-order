@@ -1,0 +1,103 @@
+{
+ "orderId": "c253d8a56634b393",
+ "steps": [
+  {
+   "n": 1,
+   "action": "fund",
+   "txid": "d4f7d8bd33c26497775b436c15520ba2db48463082a5aec3c7704660e7541f59",
+   "invitation": "invitations-plus/1-fund.xo.json",
+   "inputs": 1,
+   "outputs": [
+    [
+     "bchtest:pvd4xsy6u3nxwag8sryc3fgfmc7jgllplq4d5vu0sak4yfapafrkkr6esv7ff",
+     "20000"
+    ],
+    [
+     "bchtest:qpv5na2zm66z6stsv949mpna8yt5gnxj2gqtkj3ecp",
+     "4600"
+    ]
+   ],
+   "at": "2026-11-19T13:42:34.068Z"
+  },
+  {
+   "n": 2,
+   "action": "claim",
+   "txid": "23ac88398ddcd5465b84dc58d19301782ae47246ea27586304b6ae72f11ed2c1",
+   "invitation": "invitations-plus/2-claim.xo.json",
+   "inputs": 1,
+   "outputs": [
+    [
+     "bchtest:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqxwsz2ry3",
+     "2000"
+    ],
+    [
+     "bchtest:qzw9utdh57gm7wv0yu59kxlpw2vgfmlpeyyyr7femn",
+     "1000"
+    ],
+    [
+     "bchtest:pvd4xsy6u3nxwag8sryc3fgfmc7jgllplq4d5vu0sak4yfapafrkkr6esv7ff",
+     "15000"
+    ]
+   ],
+   "at": "2026-11-19T13:52:45.895Z"
+  },
+  {
+   "n": 3,
+   "action": "pause",
+   "txid": "434d31b285de1e41e6ea6920a8f80eab4b042f33eef6b137c19be2597731fd7b",
+   "invitation": "invitations-plus/3-pause.xo.json",
+   "inputs": 2,
+   "outputs": [
+    [
+     "bchtest:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqxwsz2ry3",
+     "2000"
+    ],
+    [
+     "bchtest:qzw9utdh57gm7wv0yu59kxlpw2vgfmlpeyyyr7femn",
+     "1000"
+    ],
+    [
+     "bchtest:p0atr4dppqjsuygdm8ghrrv570z8e9qsf7nfw28neahkxcmsyzzjv345ygwfk",
+     "10000"
+    ],
+    [
+     "bchtest:qpv5na2zm66z6stsv949mpna8yt5gnxj2gqtkj3ecp",
+     "4600"
+    ]
+   ],
+   "at": "2026-11-19T13:57:51.612Z"
+  },
+  {
+   "n": 4,
+   "action": "resume",
+   "txid": "72f55891043cff9832f6e7c18b38b1087adaa156b40b9d289e00ce19941b4d60",
+   "invitation": "invitations-plus/4-resume.xo.json",
+   "inputs": 2,
+   "outputs": [
+    [
+     "bchtest:pvd4xsy6u3nxwag8sryc3fgfmc7jgllplq4d5vu0sak4yfapafrkkr6esv7ff",
+     "8000"
+    ],
+    [
+     "bchtest:qpv5na2zm66z6stsv949mpna8yt5gnxj2gqtkj3ecp",
+     "4600"
+    ]
+   ],
+   "at": "2026-11-19T13:59:57.144Z"
+  },
+  {
+   "n": 5,
+   "action": "cancel",
+   "txid": "4ca63d5bebdc24eb17e716e40268a21974fe8a5153fe41e76dddae7d63e5a2b8",
+   "invitation": "invitations-plus/5-cancel.xo.json",
+   "inputs": 2,
+   "outputs": [
+    [
+     "bchtest:qpv5na2zm66z6stsv949mpna8yt5gnxj2gqtkj3ecp",
+     "10600"
+    ]
+   ],
+   "at": "2026-11-19T14:01:00.545Z"
+  }
+ ]
+}

@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Standing Order as an XO wallet template (libauth CashAssembly), plus offline VM tests and a chipnet demo.",
   "scripts": {
-    "test": "node test.mjs",
+    "test": "node test.mjs && node test_plus.mjs",
     "demo": "node demo.mjs"
   },
   "dependencies": {

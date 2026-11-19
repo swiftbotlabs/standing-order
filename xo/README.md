@@ -77,11 +77,45 @@ Run it in one go: the demo keeps the XO state in memory (`fake-indexeddb`), so a
 
 Before the claim confirmed, the network refused the early payment (`non-BIP68-final`): the period is enforced by consensus.
 
+## Standing Order Plus on XO (the covenant built in the BLAZE window)
+
+A second template, [`standing-order-plus.template.mjs`](standing-order-plus.template.mjs) (JSON:
+[`standing-order-plus.template.json`](standing-order-plus.template.json), imports as template
+`d68020b82fe99690e4756d8f1d0eb4f823354f124a47e1759a2ba147c7e5696b`), ports **Standing Order Plus**, written after kick-off
+(`contracts/standing_order_plus.scash` + `contracts/paused_order.scash`): a split payee every period, **pause** (the period in progress
+is paid and the rest moves to this order's own PausedOrder covenant, whose address the contract computes on chain), **resume** and
+**cancel**. Roles: subscriber, merchant, split payee, service (anyone may trigger a due payment).
+
+- Same method as the v1 port: both compiled bodies come from the project's artifacts (`extract_plus.mjs`; the PausedOrder body equals
+  the `PAUSED_TEMPLATE` constant inside StandingOrderPlus), constructor arguments pushed in front. The template's CashAssembly computes
+  the paused address exactly as `pause()` does on chain.
+- The subscriber's authorization is not a key inside the template: the contract wants the last input to be a coin of the subscriber's
+  own P2PKH address, signed over the whole transaction, so the subscriber's XO wallet adds one of its own coins.
+- Offline (`node test_plus.mjs`): 13 checks on the BCH 2026 VM: both addresses equal the SolidCash build; claim, pause, resume and cancel
+  valid; a split sent to the merchant, an early claim, a stranger's authorization, a pause that skips the paused covenant, a resume into
+  another order and a refund to the merchant are all rejected.
+
+**Through XO invitations on chipnet** (`node --import ./lib/no-native.mjs invite_plus.mjs`; 2,000 sats a block to the merchant, 1,000 to
+the split payee; the subscriber is the XO wallet's own address). Invitations in [`invitations-plus/`](invitations-plus/):
+
+| # | Action (role) | Invitation | Transaction |
+|---|---|---|---|
+| 1 | `fund` (subscriber): 20,000 into the order | [1-fund](invitations-plus/1-fund.xo.json) | [d4f7d8bd…](https://chipnet.chaingraph.cash/tx/d4f7d8bd33c26497775b436c15520ba2db48463082a5aec3c7704660e7541f59) |
+| 2 | `claim` (anyone): 2,000 merchant + 1,000 split, 15,000 back into the order | [2-claim](invitations-plus/2-claim.xo.json) | [23ac8839…](https://chipnet.chaingraph.cash/tx/23ac88398ddcd5465b84dc58d19301782ae47246ea27586304b6ae72f11ed2c1) |
+| 3 | `pause` (subscriber + own coin): period paid, 10,000 into the paused covenant | [3-pause](invitations-plus/3-pause.xo.json) | [434d31b2…](https://chipnet.chaingraph.cash/tx/434d31b285de1e41e6ea6920a8f80eab4b042f33eef6b137c19be2597731fd7b) |
+| 4 | `resume` (subscriber + own coin): 8,000 back into the same order | [4-resume](invitations-plus/4-resume.xo.json) | [72f55891…](https://chipnet.chaingraph.cash/tx/72f55891043cff9832f6e7c18b38b1087adaa156b40b9d289e00ce19941b4d60) |
+| 5 | `cancel` (subscriber + own coin): everything left back to the subscriber | [5-cancel](invitations-plus/5-cancel.xo.json) | [4ca63d5b…](https://chipnet.chaingraph.cash/tx/4ca63d5bebdc24eb17e716e40268a21974fe8a5153fe41e76dddae7d63e5a2b8) |
+
+To open them in blaze.xo.cash: import `standing-order-plus.template.json` with a chipnet account first. Two engine notes we hit (also in
+FEEDBACK.md): the engine only spends coins of scripts it tracks, and tracking starts when an invitation is created with an output to
+that script, so after a restart `invite_plus.mjs` creates and archives a draft invitation to re-track a covenant; and
+`addChangeToInvitation` treats the covenant's fee allowance as spare change, so the authorizing coin is returned with an explicit output.
+
 ## Run it
 
 ```bash
 cd xo && npm ci
-npm test                                                     # offline, 15 checks
+npm test                                                     # offline: 15 checks (v1) + 13 checks (Plus)
 SEED_FILE=<seed hex file> node demo.mjs status               # chipnet; fund <sats> | claim | cancel
 XO_MNEMONIC_FILE=<file> node --import ./lib/no-native.mjs demo.mjs import   # XO engine import
 ```
