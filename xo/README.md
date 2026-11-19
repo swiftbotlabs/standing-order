@@ -42,6 +42,11 @@ The whole order lifecycle, each step one **XO invitation** created, filled, sign
 (`@xo-cash/engine@0.1.1-next.18029697917`) with this template. The invitations are saved in [`invitations/`](invitations/)
 (`serializeInvitation` output): paste one into the debug tool at [blaze.xo.cash](https://blaze.xo.cash) to inspect it.
 
+**To open or join them:** first import the template file [`standing-order.template.json`](standing-order.template.json) (Import
+template in blaze.xo.cash or any XO wallet). It imports as template `bd50bcd19dae15e28291b2d2fec2e66f808f41781cfc921d4f6f168cc44586f2`,
+the identifier every invitation references. The file is written by `node export_template.mjs` with XO's own `serializeTemplate`
+(it keeps the template's bigints), and `node --import ./lib/no-native.mjs check_template_id.mjs` re-imports it and checks the identifier.
+
 | # | Action (role) | Invitation | Transaction |
 |---|---|---|---|
 | 1 | `fund` (subscriber): 45,000 sats into the order; the engine picks the wallet's coins, adds change, signs | [1-fund.xo.json](invitations/1-fund.xo.json) | [6cac3b95…](https://chipnet.chaingraph.cash/tx/6cac3b95e9dba8ab6e8b67f1b70a242e704911c71d8590d04948280ce75e4c2f) |
