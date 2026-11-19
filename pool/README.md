@@ -57,19 +57,21 @@ earlier or to a future height, only the member pauses or resumes, release of a p
 Run with our own keys (log: [pool_v3_mainnet.log](pool_v3_mainnet.log)); the release went to member 2's recovery address
 `bitcoincash:qq63ztxw24rnv4l66v64a70gkj3rk053sy2n742xyd`.
 
+Second explorer: every txid also links to 3xpl.com, which serves plain HTTP clients (Blockchair may block automated readers).
+
 | Step | Transaction | Block | Size |
 |---|---|---|---|
-| deploy the v3 pool (2,000 sats per 1-block period) | [50ce1b7b](https://blockchair.com/bitcoin-cash/transaction/50ce1b7b26fb9ad07d74da81a7ffd1a05d803076138482d7fecf544c9ab517b2) | 977845 | 906 B |
-| member 1 subscribes, 4 periods | [394487bc](https://blockchair.com/bitcoin-cash/transaction/394487bc7e623c894c07d80ba2e1eaec073685be5712771e4676db7f4a3b82f3) | 977845 | 11,498 B |
-| member 2 subscribes, 4 periods | [29c1ebd3](https://blockchair.com/bitcoin-cash/transaction/29c1ebd3b62cd49e6352e1b4f600962ae23db5504db9bec3e9c516406fd9a767) | 977845 | 11,395 B |
-| collect from both members in one transaction | [5a306c5b](https://blockchair.com/bitcoin-cash/transaction/5a306c5bc686967c3c920485833cb6139ff1cc7a3cbaa5967b8a744c4009500e) | 977845 | 10,981 B |
-| next period: collect from both again | [8059dc1a](https://blockchair.com/bitcoin-cash/transaction/8059dc1a42f5089021ac12ff609b59943c9d52d3de8afe45d469ff326c4ddaf5) | 977846 | 10,981 B |
-| catch-up: two periods from member 1 | [e3ba6144](https://blockchair.com/bitcoin-cash/transaction/e3ba61447bcfe4ea9667760bf1cc724b2a578b282bc6ab14e31f1750776d91a0) | 977848 | 10,625 B |
-| **member 2 pauses** (a collect from member 2 right after was refused: `require: not a member`, nothing broadcast) | [0d84fe5a](https://blockchair.com/bitcoin-cash/transaction/0d84fe5a1bb8a404b87f123450cf1e5e307fa0e50f8324a6318d2472af70923e) | 977848 | 9,802 B |
-| **member 2 resumes** (next period due from the resume height) | [35a8c62e](https://blockchair.com/bitcoin-cash/transaction/35a8c62ea5863156fa34dc4ce49e71a5331eb70bd032a6af7ada785cff3b194e) | 977849 | 10,175 B |
-| member 2 withdraws 1 period | [d994e411](https://blockchair.com/bitcoin-cash/transaction/d994e41126eec44d8a782ff265e6424105c87c516a4f44d5d9d1f3958231b183) | 977849 | 11,232 B |
-| key-loss path: the merchant releases member 2's last period to the recovery address | [9cac3580](https://blockchair.com/bitcoin-cash/transaction/9cac35800ce85d2a99e3996d03294f05ce57559c81bf62827606649847ba0406) | 977849 | 11,083 B |
-| member 1 leaves | [ce5b37ae](https://blockchair.com/bitcoin-cash/transaction/ce5b37ae61e748d83683ff859cd6614e490679c8060a625af03149ac4be2e607) | 977849 | 10,582 B |
+| deploy the v3 pool (2,000 sats per 1-block period) | [50ce1b7b](https://blockchair.com/bitcoin-cash/transaction/50ce1b7b26fb9ad07d74da81a7ffd1a05d803076138482d7fecf544c9ab517b2) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/50ce1b7b26fb9ad07d74da81a7ffd1a05d803076138482d7fecf544c9ab517b2)) | 977845 | 906 B |
+| member 1 subscribes, 4 periods | [394487bc](https://blockchair.com/bitcoin-cash/transaction/394487bc7e623c894c07d80ba2e1eaec073685be5712771e4676db7f4a3b82f3) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/394487bc7e623c894c07d80ba2e1eaec073685be5712771e4676db7f4a3b82f3)) | 977845 | 11,498 B |
+| member 2 subscribes, 4 periods | [29c1ebd3](https://blockchair.com/bitcoin-cash/transaction/29c1ebd3b62cd49e6352e1b4f600962ae23db5504db9bec3e9c516406fd9a767) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/29c1ebd3b62cd49e6352e1b4f600962ae23db5504db9bec3e9c516406fd9a767)) | 977845 | 11,395 B |
+| collect from both members in one transaction | [5a306c5b](https://blockchair.com/bitcoin-cash/transaction/5a306c5bc686967c3c920485833cb6139ff1cc7a3cbaa5967b8a744c4009500e) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/5a306c5bc686967c3c920485833cb6139ff1cc7a3cbaa5967b8a744c4009500e)) | 977845 | 10,981 B |
+| next period: collect from both again | [8059dc1a](https://blockchair.com/bitcoin-cash/transaction/8059dc1a42f5089021ac12ff609b59943c9d52d3de8afe45d469ff326c4ddaf5) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/8059dc1a42f5089021ac12ff609b59943c9d52d3de8afe45d469ff326c4ddaf5)) | 977846 | 10,981 B |
+| catch-up: two periods from member 1 | [e3ba6144](https://blockchair.com/bitcoin-cash/transaction/e3ba61447bcfe4ea9667760bf1cc724b2a578b282bc6ab14e31f1750776d91a0) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/e3ba61447bcfe4ea9667760bf1cc724b2a578b282bc6ab14e31f1750776d91a0)) | 977848 | 10,625 B |
+| **member 2 pauses** (a collect from member 2 right after was refused: `require: not a member`, nothing broadcast) | [0d84fe5a](https://blockchair.com/bitcoin-cash/transaction/0d84fe5a1bb8a404b87f123450cf1e5e307fa0e50f8324a6318d2472af70923e) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/0d84fe5a1bb8a404b87f123450cf1e5e307fa0e50f8324a6318d2472af70923e)) | 977848 | 9,802 B |
+| **member 2 resumes** (next period due from the resume height) | [35a8c62e](https://blockchair.com/bitcoin-cash/transaction/35a8c62ea5863156fa34dc4ce49e71a5331eb70bd032a6af7ada785cff3b194e) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/35a8c62ea5863156fa34dc4ce49e71a5331eb70bd032a6af7ada785cff3b194e)) | 977849 | 10,175 B |
+| member 2 withdraws 1 period | [d994e411](https://blockchair.com/bitcoin-cash/transaction/d994e41126eec44d8a782ff265e6424105c87c516a4f44d5d9d1f3958231b183) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/d994e41126eec44d8a782ff265e6424105c87c516a4f44d5d9d1f3958231b183)) | 977849 | 11,232 B |
+| key-loss path: the merchant releases member 2's last period to the recovery address | [9cac3580](https://blockchair.com/bitcoin-cash/transaction/9cac35800ce85d2a99e3996d03294f05ce57559c81bf62827606649847ba0406) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/9cac35800ce85d2a99e3996d03294f05ce57559c81bf62827606649847ba0406)) | 977849 | 11,083 B |
+| member 1 leaves | [ce5b37ae](https://blockchair.com/bitcoin-cash/transaction/ce5b37ae61e748d83683ff859cd6614e490679c8060a625af03149ac4be2e607) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/ce5b37ae61e748d83683ff859cd6614e490679c8060a625af03149ac4be2e607)) | 977849 | 10,582 B |
 
 Final state: 0 members, paidTotal 12,000 sats, one 1,000-sat pool coin left. Each v3 call is 9.8-11.5 KB.
 
@@ -80,15 +82,15 @@ Run with our own keys, contract `bitcoincash:pvfw6fhv3rp925ejjrqshy75afuwaak0kuv
 
 | Step | Transaction | Block | Size |
 |---|---|---|---|
-| deploy the v2 pool (2,000 sats per 1-block period) | [14bfd313](https://blockchair.com/bitcoin-cash/transaction/14bfd313d419c7532576df0ce9511ceb76e6195c75609106eade975a175ca84b) | 977809 | 906 B |
-| member 1 subscribes, 4 periods, naming a recovery address | [bb0356aa](https://blockchair.com/bitcoin-cash/transaction/bb0356aaa942cea929bbfe91b4a3b81601ef6cb65612c060e4794c8e1c1b7f2a) | 977809 | 11,232 B |
-| member 2 subscribes, 4 periods, naming a recovery address | [90c1b383](https://blockchair.com/bitcoin-cash/transaction/90c1b38380d619a5f490cccaf9cd9bc17cd8de1f649c0908a6075bd428947eae) | 977809 | 11,129 B |
-| collect from both members in one transaction (merchant +4,000) | [21496c9f](https://blockchair.com/bitcoin-cash/transaction/21496c9f08d04a1e974579a88b69446486e3f88fc0551a2b5e92b7231853de70) | 977809 | 10,715 B |
-| next period: collect from both again | [c9a0ba5e](https://blockchair.com/bitcoin-cash/transaction/c9a0ba5e0fb04af1464686bd1adfe55f60b3c96be3fea319e413bc5c09d09b2c) | 977810 | 10,715 B |
-| catch-up: two periods from member 1 (paidTotal 12,000) | [5219cf21](https://blockchair.com/bitcoin-cash/transaction/5219cf21fe091a57b79a656f7e1ced79625a027591942a8c87bbe108cc304f95) | 977812 | 10,359 B |
-| member 2 withdraws 1 period | [53c0335c](https://blockchair.com/bitcoin-cash/transaction/53c0335cdb9915240283d16b1daa04c9cf040f51927b59fad332260280d16f0d) | 977812 | 10,966 B |
-| **key-loss path**: the merchant releases member 2's last period, paid to member 2's recovery address | [36ce49fe](https://blockchair.com/bitcoin-cash/transaction/36ce49fef70152e7969c33c4a7b3454647a0aa872ab0af408d329b2ffe7da7ac) | 977812 | 10,817 B |
-| member 1 leaves | [edb9b093](https://blockchair.com/bitcoin-cash/transaction/edb9b0938dc805aa5bf213c5c0c516c3a4a8b7a96f00fbfbe7cbc09b0ebc2eff) | 977812 | 10,316 B |
+| deploy the v2 pool (2,000 sats per 1-block period) | [14bfd313](https://blockchair.com/bitcoin-cash/transaction/14bfd313d419c7532576df0ce9511ceb76e6195c75609106eade975a175ca84b) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/14bfd313d419c7532576df0ce9511ceb76e6195c75609106eade975a175ca84b)) | 977809 | 906 B |
+| member 1 subscribes, 4 periods, naming a recovery address | [bb0356aa](https://blockchair.com/bitcoin-cash/transaction/bb0356aaa942cea929bbfe91b4a3b81601ef6cb65612c060e4794c8e1c1b7f2a) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/bb0356aaa942cea929bbfe91b4a3b81601ef6cb65612c060e4794c8e1c1b7f2a)) | 977809 | 11,232 B |
+| member 2 subscribes, 4 periods, naming a recovery address | [90c1b383](https://blockchair.com/bitcoin-cash/transaction/90c1b38380d619a5f490cccaf9cd9bc17cd8de1f649c0908a6075bd428947eae) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/90c1b38380d619a5f490cccaf9cd9bc17cd8de1f649c0908a6075bd428947eae)) | 977809 | 11,129 B |
+| collect from both members in one transaction (merchant +4,000) | [21496c9f](https://blockchair.com/bitcoin-cash/transaction/21496c9f08d04a1e974579a88b69446486e3f88fc0551a2b5e92b7231853de70) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/21496c9f08d04a1e974579a88b69446486e3f88fc0551a2b5e92b7231853de70)) | 977809 | 10,715 B |
+| next period: collect from both again | [c9a0ba5e](https://blockchair.com/bitcoin-cash/transaction/c9a0ba5e0fb04af1464686bd1adfe55f60b3c96be3fea319e413bc5c09d09b2c) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/c9a0ba5e0fb04af1464686bd1adfe55f60b3c96be3fea319e413bc5c09d09b2c)) | 977810 | 10,715 B |
+| catch-up: two periods from member 1 (paidTotal 12,000) | [5219cf21](https://blockchair.com/bitcoin-cash/transaction/5219cf21fe091a57b79a656f7e1ced79625a027591942a8c87bbe108cc304f95) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/5219cf21fe091a57b79a656f7e1ced79625a027591942a8c87bbe108cc304f95)) | 977812 | 10,359 B |
+| member 2 withdraws 1 period | [53c0335c](https://blockchair.com/bitcoin-cash/transaction/53c0335cdb9915240283d16b1daa04c9cf040f51927b59fad332260280d16f0d) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/53c0335cdb9915240283d16b1daa04c9cf040f51927b59fad332260280d16f0d)) | 977812 | 10,966 B |
+| **key-loss path**: the merchant releases member 2's last period, paid to member 2's recovery address | [36ce49fe](https://blockchair.com/bitcoin-cash/transaction/36ce49fef70152e7969c33c4a7b3454647a0aa872ab0af408d329b2ffe7da7ac) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/36ce49fef70152e7969c33c4a7b3454647a0aa872ab0af408d329b2ffe7da7ac)) | 977812 | 10,817 B |
+| member 1 leaves | [edb9b093](https://blockchair.com/bitcoin-cash/transaction/edb9b0938dc805aa5bf213c5c0c516c3a4a8b7a96f00fbfbe7cbc09b0ebc2eff) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/edb9b0938dc805aa5bf213c5c0c516c3a4a8b7a96f00fbfbe7cbc09b0ebc2eff)) | 977812 | 10,316 B |
 Final state: 0 members, paidTotal 12,000 sats, one 1,000-sat pool coin left.
 
 **Cost, stated plainly:** every v2 call is a ~10.3-11.2 KB transaction (fee ~10.3-11.4k sats at 1 sat/byte, about 2 US cents),
@@ -102,14 +104,14 @@ Run of 17 Nov 2026 with our own keys, contract `bitcoincash:p0puu77vgjg476htngm9
 
 | Step | Transaction | Block |
 |---|---|---|
-| deploy the pool (one covenant for the plan, 2,000 sats per 1-block period) | [ee41dc87](https://blockchair.com/bitcoin-cash/transaction/ee41dc87d88fbcf6d657058564270b9dc50b4cf3927352eeced69d9b334bd19a) | 977740 |
-| member 1 subscribes, 4 periods | [cd565869](https://blockchair.com/bitcoin-cash/transaction/cd565869afc900a629d97f079a6252d7a606e8b56219bb6df4206aec233e6c5c) | 977741 |
-| member 2 subscribes, 3 periods | [d5644398](https://blockchair.com/bitcoin-cash/transaction/d5644398eaaedb4d02d4c83a2a890f18ae27fac47b73a4e5ac0251991953ee6b) | 977741 |
-| collect from both members in one transaction (merchant +4,000) | [03b99ffa](https://blockchair.com/bitcoin-cash/transaction/03b99ffa4d2670ace06940f4f3a918203fdd83bc6f4ea0885e82f93fbe4f39c8) | 977741 |
-| next period: collect from both again (paidTotal 8,000) | [22a8dc66](https://blockchair.com/bitcoin-cash/transaction/22a8dc66874b9676b9e7e4bd3baa03f65d353636d1e5b55753ed27b6a9ba2820) | 977742 |
-| catch-up: collect 2 missed periods from member 1 (paidTotal 12,000) | [c17e5f85](https://blockchair.com/bitcoin-cash/transaction/c17e5f858d029911e6bb1512092748dc08d8b6013c13257c48a877395d65fc39) | 977744 |
-| member 2 withdraws 1 unused period | [6831bb3a](https://blockchair.com/bitcoin-cash/transaction/6831bb3ad7451d38d69f5c854e023d49dffd87b26b16ce58543ca5602d52ebe5) | 977744 |
-| member 1 leaves (record removed) | [efe62b44](https://blockchair.com/bitcoin-cash/transaction/efe62b4411dcaf382122f91ec07a3009de63be1e67f852f90d86b25afd22aa0d) | 977744 |
+| deploy the pool (one covenant for the plan, 2,000 sats per 1-block period) | [ee41dc87](https://blockchair.com/bitcoin-cash/transaction/ee41dc87d88fbcf6d657058564270b9dc50b4cf3927352eeced69d9b334bd19a) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/ee41dc87d88fbcf6d657058564270b9dc50b4cf3927352eeced69d9b334bd19a)) | 977740 |
+| member 1 subscribes, 4 periods | [cd565869](https://blockchair.com/bitcoin-cash/transaction/cd565869afc900a629d97f079a6252d7a606e8b56219bb6df4206aec233e6c5c) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/cd565869afc900a629d97f079a6252d7a606e8b56219bb6df4206aec233e6c5c)) | 977741 |
+| member 2 subscribes, 3 periods | [d5644398](https://blockchair.com/bitcoin-cash/transaction/d5644398eaaedb4d02d4c83a2a890f18ae27fac47b73a4e5ac0251991953ee6b) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/d5644398eaaedb4d02d4c83a2a890f18ae27fac47b73a4e5ac0251991953ee6b)) | 977741 |
+| collect from both members in one transaction (merchant +4,000) | [03b99ffa](https://blockchair.com/bitcoin-cash/transaction/03b99ffa4d2670ace06940f4f3a918203fdd83bc6f4ea0885e82f93fbe4f39c8) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/03b99ffa4d2670ace06940f4f3a918203fdd83bc6f4ea0885e82f93fbe4f39c8)) | 977741 |
+| next period: collect from both again (paidTotal 8,000) | [22a8dc66](https://blockchair.com/bitcoin-cash/transaction/22a8dc66874b9676b9e7e4bd3baa03f65d353636d1e5b55753ed27b6a9ba2820) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/22a8dc66874b9676b9e7e4bd3baa03f65d353636d1e5b55753ed27b6a9ba2820)) | 977742 |
+| catch-up: collect 2 missed periods from member 1 (paidTotal 12,000) | [c17e5f85](https://blockchair.com/bitcoin-cash/transaction/c17e5f858d029911e6bb1512092748dc08d8b6013c13257c48a877395d65fc39) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/c17e5f858d029911e6bb1512092748dc08d8b6013c13257c48a877395d65fc39)) | 977744 |
+| member 2 withdraws 1 unused period | [6831bb3a](https://blockchair.com/bitcoin-cash/transaction/6831bb3ad7451d38d69f5c854e023d49dffd87b26b16ce58543ca5602d52ebe5) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/6831bb3ad7451d38d69f5c854e023d49dffd87b26b16ce58543ca5602d52ebe5)) | 977744 |
+| member 1 leaves (record removed) | [efe62b44](https://blockchair.com/bitcoin-cash/transaction/efe62b4411dcaf382122f91ec07a3009de63be1e67f852f90d86b25afd22aa0d) ([3xpl](https://3xpl.com/bitcoin-cash/transaction/efe62b4411dcaf382122f91ec07a3009de63be1e67f852f90d86b25afd22aa0d)) | 977744 |
 
 A collect tried right after the first one, before the next period, was refused by the contract (`require: member not due`; nothing broadcast).
 Final state: 0 members, paidTotal 12,000 sats, one 1,000-sat pool coin left.
