@@ -1,6 +1,6 @@
 # Standing Order
 
-[![solidhat tests](https://img.shields.io/badge/solidhat%20tests-77%20passing-2ea44f)](#tests) [![mainnet](https://img.shields.io/badge/mainnet-full%20lifecycle%20proven-0ac18e)](#proven-on-mainnet-real-bch) [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![solidhat tests](https://img.shields.io/badge/solidhat%20tests-93%20passing-2ea44f)](#tests) [![mainnet](https://img.shields.io/badge/mainnet-full%20lifecycle%20proven-0ac18e)](#proven-on-mainnet-real-bch) [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 > **Built in the BLAZE window.** We started on 14 Nov a few hours before the 14:00 UTC kick-off, which the organizers allowed
 > ([t.me/bchblaze/2454](https://t.me/bchblaze/2454)). The tag [`pre-kickoff`](https://github.com/swiftbotlabs/standing-order/tree/pre-kickoff)
@@ -24,7 +24,7 @@ the order list is public JSON ([/api/orders/all](https://standing-order.swiftbot
 
 **Watch it on mainnet (36 s):** [the walkthrough](https://standing-order.swiftbotlab.workers.dev/film/walk60.mp4): a merchant makes a pay link, a wallet
 subscribes with one approval, the relayer pays the merchant one period, the subscriber cancels and gets the rest back (real BCH, the live site).
-**Run the tests:** `npm ci && npx --no-install solidhat test` (77 solidhat tests) · `cd pool && npm ci && npx --no-install vitest run -c vitest.config.mjs` (16 Pool tests) = 93.
+**Run the tests:** `npm ci && npx --no-install solidhat test` (77 solidhat tests) · `cd pool && npm ci && npx --no-install solidhat test` (16 Pool tests, SolidHat 0.51 for the stateful runtime) = **93 solidhat tests**.
 **On XO:** the same contract (unchanged since the `pre-kickoff` tag) is now an XO wallet template: fund, claim and cancel from any XO wallet. Template, 15 VM checks, the XO engine import and three chipnet transactions: [xo/](xo/README.md).
 **Watch the 17-second film:** [Coins with rules](https://standing-order.swiftbotlab.workers.dev/film/) (also on [YouTube Shorts](https://youtube.com/shorts/p8m_4ubXscg)).
 
@@ -56,7 +56,7 @@ kick-off; the tag `pre-kickoff` marks the state at kick-off.
 | covenant construction `LockingBytecodeP2SH32(hash256(...))` | [`pause()` computes its own paused address](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L100), [`resume()` only back to its order](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/paused_order.scash#L33), [`changePlan()`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L121) |
 | token introspection (`tokenCategory`) | [no token may ride on the order coin](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L87); fungible-token plans in [`standing_order_token.scash`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_token.scash) |
 | `require` messages | throughout, e.g. [`"one claim per period"`](https://github.com/swiftbotlabs/standing-order/blob/main/contracts/standing_order_plus.scash#L64) |
-| solidhat (`solidcash.config.mjs`, `solidhat test`) | [`test/`](https://github.com/swiftbotlabs/standing-order/blob/main/test) - 77 tests |
+| solidhat (`solidcash.config.mjs`, `solidhat test`) | [`test/`](https://github.com/swiftbotlabs/standing-order/blob/main/test) - 77 tests; [`pool/test/`](https://github.com/swiftbotlabs/standing-order/blob/main/pool/test) - 16 tests (`cd pool && npx solidhat test`) |
 
 
 ## What if something goes wrong?

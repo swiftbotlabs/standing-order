@@ -45,7 +45,7 @@ the contract under the 10,000-byte input-script limit (a separate `paused` mappi
 sign of the stored record. Top-up, withdraw and leave need an active (resumed) member.
 
 ## Tests
-`npx --no-install vitest run -c vitest.config.mjs`: 16 tests on the production mock network (subscribe, caps on deposits, top-up,
+`npx --no-install solidhat test` (SolidHat compiles the pool contract, then runs vitest; the plain `npx --no-install vitest run -c vitest.config.mjs` still works): 16 tests on the production mock network (subscribe, caps on deposits, top-up,
 collect never early, a final transaction lying about `due` is refused by the CLTV, batch of three in one tx, catch-up, no budget left,
 redirect and inflate attempts, withdraw/leave only by the member, fragmented-pool liveness, release only by the merchant and only
 to the recovery address, recovery address changed only by the member, pause blocks collect, resume never moves the due height
