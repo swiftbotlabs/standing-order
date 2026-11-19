@@ -27,6 +27,12 @@ Modelled on XO's `faucetCashTemplate` (same shape: a coin that waits a number of
 
 ## Proof
 
+**The chipnet invitations match the current code** (re-checked 19 Nov 2026, 21:40 UTC, on `main`): re-extracting both covenant bodies
+from the current compiled artifacts (`extract_tail.mjs`, `extract_plus.mjs`) and re-exporting both templates (`export_template.mjs`)
+reproduces the committed files byte for byte, and both template files import as the identifiers every invitation names
+(`bd50bcd1…` for Standing Order, `d68020b8…` for Standing Order Plus; `check_template_id.mjs`, run with any throwaway test mnemonic in
+`XO_MNEMONIC_FILE`). The offline checks pass on `main`: 15/15 and 13/13 (`npm test`).
+
 **Offline, against the BCH 2026 VM** (`npm ci && npm test`, no network): 15 checks pass.
 - template address and redeem script == the solidcash build (2 argument sets);
 - claim after one period: valid; before the period, to someone else, too much, change elsewhere, a third output: all rejected;

@@ -5,8 +5,10 @@
 > **Built in the BLAZE window.** We started on 14 Nov a few hours before the 14:00 UTC kick-off, which the organizers allowed
 > ([t.me/bchblaze/2454](https://t.me/bchblaze/2454)). The tag [`pre-kickoff`](https://github.com/swiftbotlabs/standing-order/tree/pre-kickoff)
 > is the state at kick-off: 2 covenants (138 contract lines), 35 tests, the first dapp and relayer. Since then (`git diff pre-kickoff`,
-> no lockfiles, artifacts or media): contracts **+688** lines (Standing Order Plus, PausedOrder, the stateful Pool v1-v3), tests **+837**
-> (93 tests now), scripts **+673**, dapp code **+522 / -55**, XO port **+595**.
+> no lockfiles, artifacts or media; recounted 19 Nov 21:30 UTC): contracts **+688** lines = `contracts/` +175 (Standing Order Plus,
+> PausedOrder) and `pool/contracts/` +513 (the stateful Pool: v3 209 lines, plus its archived v1 and v2); tests **+837** = `test/` +543 and
+> `pool/test/` +294 (93 solidhat tests now); scripts **+673 / -15**; dapp `web/src` **+508 / -53**; XO port **+1,027** (two templates).
+> The table further down counts the same way.
 > [Compare pre-kickoff...main](https://github.com/swiftbotlabs/standing-order/compare/pre-kickoff...main).
 
 **Subscriptions that pay themselves, on Bitcoin Cash.** Live: https://standing-order.swiftbotlab.workers.dev/
@@ -133,7 +135,7 @@ The tag `pre-kickoff` (14 Nov, 13:35 UTC, before the 14:00 UTC start) is the bas
 | Upstream SolidCash | PR [#1](https://github.com/solidcash/solidcash/pull/1) (WalletConnect covered bytecode) | issue [#2](https://github.com/solidcash/solidcash/issues/2): five findings with reproductions; the first follow-up PR (findings 1-3: example pragmas, awaited matchers, docs) is ready and opens once #1 is reviewed (one open PR at a time) |
 | Security | two reviews of v1 | a third review of v2: no theft path; four weaknesses fixed, each with a regression test |
 | Media | deck | the 2-minute demo film on the home page |
-| **Lines of code** (`git diff pre-kickoff main`, no lockfiles or build output) | contracts 138, tests 514 (35 tests), scripts 457, dapp `web/src` 677 | contracts **+175** (313 now), tests **+543** (1,057 now, 77 tests), scripts **+471**, dapp **+259 / -41** |
+| **Lines of code** (`git diff pre-kickoff main`, no lockfiles or build output) | contracts 138, tests 514 (35 tests), scripts 457, dapp `web/src` 677 | contracts **+688**: `contracts/` +175 (313 now) and `pool/contracts/` +513 (Pool v3 + archived v1, v2); tests **+837**: `test/` +543 (77 tests) and `pool/test/` +294 (16 tests); scripts **+673 / -15**; dapp `web/src` **+508 / -53**; XO port **+1,027** |
 
 **In-window commits** (UTC dates; the full list is the compare link below):
 - [8e0b98e](https://github.com/swiftbotlabs/standing-order/commit/8e0b98e) 15 Nov: Standing Order Plus (v2): split payee, pause/resume, top-up, plan change; security-review fixes with regression tests
