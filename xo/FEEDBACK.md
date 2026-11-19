@@ -1,21 +1,23 @@
-# Feedback on building with XO
+# Building with XO: our notes
 
-We moved Standing Order (a SolidCash covenant for recurring payments) onto XO during BLAZE. The contract itself did not change. The work was writing an XO template around it and then getting the engine to fund, claim and close an order through invitations on chipnet. Notes from that, in the order we hit things.
+We ported Standing Order to XO during BLAZE. Standing Order is a SolidCash covenant for subscriptions: the subscriber locks coins once, the merchant can pull one fixed amount per period, and the subscriber can cancel and take the rest back. We kept the contract exactly as it was and wrote an XO template around it, then ran fund, claim and a final claim through invitations on chipnet.
 
-**What worked well.** The faucet template was the right thing to copy. Same shape as ours (a coin that waits some blocks, pays out, keeps the rest), so roles and actions mapped over quickly, including a "service" role anyone can take to trigger a due payment. Once the engine had the template, creating, signing and executing invitations just worked, and `serializeInvitation` gives you a file you can hand to someone else. The debug tool is the best part. Pasting a txid into Inspect and stepping through all 157 steps of our claim, with the op cost next to it, told us more than our own tests did.
+Short version: we liked it, and most of our time went into a few rough edges rather than the contract.
 
-**Where we lost time.**
+What we liked. We copied the shape of the faucet template, since our coin behaves the same way (it waits, pays out, keeps the rest). That gave us roles almost for free: subscriber, merchant, and a "service" role that anybody can take to trigger a payment that is due. After that, making and signing invitations through the engine was pretty painless. The debug tool was the highlight for us. Pasting the claim txid into Inspect and stepping through it (157 steps, op cost on the side) showed what the covenant was doing better than our own test output.
 
-1. Template identifiers. We exported our template with plain `JSON.stringify` so the debug tool could import it. It imported fine but got a different id (9066f726… instead of bd50bcd1…), because the bigints were dropped, and then Join Invitation said "Template not found". Nothing pointed at the cause. `serializeTemplate` fixes it. Suggestion: say in the docs that this is the only safe way to export, and have the import show a warning when a template has lost bigint fields.
+Things that tripped us up:
 
-2. Network of the account in the debug tool. Our first tool account was on mainnet, and opening a chipnet invitation gave three "Extended public key network mismatch" errors. A hint like "this invitation is for chipnet" would help.
+The template id. We first saved the template with plain `JSON.stringify` to load it into the debug tool. It loaded, but under a different id than the one in our invitations, so Join Invitation kept saying "Template not found". It took us a while to see that the bigints had been dropped on the way out. `serializeTemplate` fixed it straight away. It would help if the docs said loudly that this is the way to export, or if the import warned you.
 
-3. A role with no key. The claim is meant to be run by anyone. The engine only accepted the order's coin as an input once it tracked that locking script, and the tracking lives in engine state. So a fresh engine cannot claim an order it did not see funded, and that is exactly the case for a third party who triggers payments. We worked around it by having the subscriber and trigger roles track the order script. A documented way to tell the engine "watch this script hash" would be cleaner.
+Mainnet vs chipnet in the debug tool. Our first account in the tool was a mainnet one, and our chipnet invitations came up with three "network mismatch" errors. Easy once you know, but a hint pointing at the account would have been nice.
 
-4. Native SQLite at load time. `@xo-cash/state` loads the native SQLite modules even when you choose IndexedDB storage. We did not want native modules in a Node script that only uses IndexedDB, so we stub them (`lib/no-native.mjs`). Loading them lazily, only when SQLite storage is picked, would remove the need.
+The keyless role. The whole point of our claim is that anyone can run it. But the engine would only take the order's coin as an input once it was tracking that script, and that tracking sits in the engine's own state. So a fresh engine can't claim an order it didn't see being funded, which is exactly the situation of a third party who triggers payments. We got around it by having the roles track the order script. A plain "watch this script hash" call would be much better.
 
-5. Contracts compiled elsewhere. SolidCash gives bytecode, not CashAssembly source, so we put the contract body in the template as a hex literal after the argument pushes. It works, but we are not sure it is the intended pattern. A documented "bytecode plus constructor arguments" form would make ports like ours much easier. We asked about this in the General Protocols group.
+SQLite. `@xo-cash/state` pulls in its native SQLite modules even when you pick IndexedDB storage. We stubbed them out for our Node scripts. Loading them only when SQLite is actually chosen would avoid that.
 
-**Missing that we would use.** A watch-only "track this covenant" call (point 3), a template linter that compiles every action once against a sample and reports which variables are unresolved, and a short page on follow-up actions with a worked example.
+Bytecode from another compiler. SolidCash hands you bytecode, not CashAssembly, so we put the contract body into the template as a hex literal after the argument pushes. It works, but we honestly don't know if that is how you want it done. We asked in the General Protocols group. A documented "bytecode plus constructor args" option would make ports like this one a lot easier.
 
-Overall: once it clicked, XO was a good fit for a covenant with clear roles, and the invitation flow is a nicer story for users than "here is a script, sign this". Most of our hours went into the identifier and state issues above, not the contract.
+What we'd add: the watch call above, a linter that compiles every action of a template once and tells you which variables are unresolved, and one worked example of follow-up actions. Ours (claim, then lastClaim when too little is left for another period) took some trial and error.
+
+Overall we'd use XO again for covenants with clear roles. Giving someone an invitation to look at and sign is a much easier story than handing them a script.
