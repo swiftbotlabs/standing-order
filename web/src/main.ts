@@ -2,8 +2,9 @@ import QRCode from 'qrcode';
 import { binToHex, hexToBin } from '@bitauth/libauth';
 import {
   type Plan, type Net, encodePlan, decodePlan, validatePlan, fundingTotal, buildFund, buildCancel, claimDue,
-  orderState, broadcast, merchantHash, formatAmount, fundingTokens, PUSD, newOrderId, isPlus, buildPauseResume, buildTopUp,
+  orderState, broadcast, merchantHash, formatAmount, fundingTokens, PUSD, newOrderId, isPlus, buildPauseResume, buildTopUp, provider,
 } from './chain';
+import { HERO_SVG } from './hero';
 import { WizardSession, type WalletInfo } from './wizard';
 
 const app = document.getElementById('app')!;
@@ -15,10 +16,55 @@ const wcDlg = document.getElementById('wc-dlg') as HTMLDialogElement;
 const short = (a: string) => { const x = a.split(':').pop() || a; return `${x.slice(0, 6)}...${x.slice(-6)}`; };
 function showWallet() {
   const w = session.wallet;
-  wcBtn.textContent = w ? `${w.name} · ${short(w.address)}${session.net === 'chipnet' ? ' · chipnet' : ''}` : 'Connect wallet';
+  if (w) {   // the wallet name is hidden on phones (style.css .wn) so the balance chip and this button share one row
+    const wn = document.createElement('span'); wn.className = 'wn'; wn.textContent = `${w.name} · `;
+    wcBtn.replaceChildren(wn, `${short(w.address)}${session.net === 'chipnet' ? ' · chipnet' : ''}`);
+  } else wcBtn.textContent = 'Connect wallet';
   wcBtn.classList.toggle('on', !!w);
   wcBtn.title = w ? 'Connected. Click to disconnect.' : 'Connect a WizardConnect wallet';
+  refreshBalance();
 }
+
+// ---- wallet balance chip (top right) and the home page's live chain line; both refresh every 30 s ----
+const balEl = document.getElementById('wc-bal')!;
+const fmtBch = (sats: bigint) => {
+  const s = (Number(sats) / 1e8).toFixed(8).replace(/0+$/, '').replace(/\.$/, '');
+  return `${s === '0' ? '0' : s} BCH`;
+};
+let balSeq = 0;
+async function refreshBalance() {
+  const w = session.wallet;
+  if (!w) { balEl.hidden = true; balEl.textContent = ''; return; }
+  const seq = ++balSeq, net = session.net as Net;
+  balEl.hidden = false;
+  if (!balEl.textContent) balEl.textContent = 'Balance...';
+  try {
+    const utxos: any[] = await provider(net).getUtxos(w.address);
+    if (seq !== balSeq || session.wallet !== w) return;
+    const sats = utxos.reduce((a, u) => a + BigInt(u.satoshis), 0n);
+    const pusd = net === 'mainnet' ? utxos.reduce((a, u) => a + (u.token?.category === PUSD.category ? BigInt(u.token.amount) : 0n), 0n) : 0n;
+    balEl.textContent = fmtBch(sats) + (pusd > 0n ? ` · ${(Number(pusd) / 10 ** PUSD.decimals).toFixed(PUSD.decimals)} PUSD` : '') + (net === 'chipnet' ? ' (test)' : '');
+    balEl.classList.remove('stale');
+  } catch {
+    if (seq === balSeq) { balEl.classList.add('stale'); if (balEl.textContent === 'Balance...') balEl.textContent = 'Balance unavailable'; }
+  }
+}
+async function refreshLive() {
+  const t = document.getElementById('live-t');
+  if (!t) return;
+  try {
+    const tip = await provider('mainnet').getBlockHeight();
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const el = document.getElementById('live-t');
+    if (el) { el.textContent = `Live on mainnet · block ${tip.toLocaleString()} · checked ${now}`; el.parentElement!.classList.remove('stale'); }
+  } catch {
+    const el = document.getElementById('live-t');
+    if (el) { el.textContent = 'Live on mainnet · chain check failed, retrying...'; el.parentElement!.classList.add('stale'); }
+  }
+}
+const autoRefresh = () => { if (document.hidden) return; refreshBalance(); refreshLive(); };
+setInterval(autoRefresh, 30_000);
+document.addEventListener('visibilitychange', autoRefresh);
 function headerConnect(net: Net) {
   const st = document.getElementById('wc-st')!;
   const uri = session.start(net, (s) => { st.textContent = s === 'connected' ? 'Relay connected. Approve in your wallet...' : s ? `${s.charAt(0).toUpperCase()}${s.slice(1)}...` : 'Waiting for your wallet...'; },
@@ -72,15 +118,27 @@ function renderHome() {
   const demo = `#/pay?p=${encodePlan(demoPlan('mainnet'))}`;
   const demoChip = `#/pay?p=${encodePlan({ ...demoPlan('chipnet'), merchant: 'bchtest:qr2dds84kdmcmfhhc6lqcqrsaw9tspregqxwsz2ry3', label: 'Standing Order demo on chipnet (test coins)' })}`;
   app.innerHTML = `
-  <section class="hero">
-    <h1>Subscriptions that pay themselves.<br/>On Bitcoin Cash.</h1>
-    <p class="lede">Fund a standing order once. The merchant can take one period's amount per period, never more and never
-    early. Cancel any time and the rest comes straight back. No custody, no card on file.</p>
-    <div class="cta">
-      <a class="btn primary" href="${demo}">Try it: 1 cent a block</a>
-      <a class="btn" href="#/new">Create a pay link</a>
+  <section class="hero hero2">
+    <h1>A subscription that can't charge you after you cancel.</h1>
+    <div class="hero-grid">
+      <figure class="anim" aria-labelledby="anim-t">${HERO_SVG}</figure>
+      <div class="hero-copy">
+        <p class="lede">Standing orders on Bitcoin Cash. Fund once, and the merchant can take one period's amount per period,
+        never more and never early: the network itself refuses an early pull. Cancel any time and the rest comes straight back.
+        No custody, no card on file.</p>
+        <p class="perm"><b>Anyone can trigger a due payment. Nobody can redirect it.</b></p>
+        <div class="plan-card" aria-label="Try a live plan">
+          <div class="plan-row"><span class="plan-price">5,000 sats</span><span class="muted">≈ 1 cent · every block · 3 periods prepaid</span></div>
+          <p class="small muted">One approval in your wallet funds the order. The network refuses an early pull; cancel any time and the rest comes back.</p>
+          <div class="cta">
+            <a class="btn primary" href="${demo}">Subscribe with your wallet</a>
+            <a class="btn" href="#/new">Create a pay link</a>
+          </div>
+        </div>
+        <p class="muted small">No BCH handy? <a href="${demoChip}">Try it on chipnet</a> with free test coins.</p>
+        <p class="live small" id="live"><span class="dot" aria-hidden="true"></span><span id="live-t">Live on mainnet · checking the chain...</span></p>
+      </div>
     </div>
-    <p class="muted small">No BCH handy? <a href="${demoChip}">Try it on chipnet</a> with free test coins.</p>
   </section>
   <section class="moments" aria-label="Cancelled means cancelled">
     <video class="short" autoplay muted loop playsinline preload="metadata" poster="/film/coins-poster.jpg" src="/film/coins-with-rules-captions-540.mp4"></video>
@@ -125,6 +183,7 @@ function renderHome() {
     <li><b>Proven on mainnet</b>: early claims refused by the network</li>
     <li><b>Open source</b> on <a href="https://github.com/swiftbotlabs/standing-order" target="_blank" rel="noopener">GitHub</a></li>
   </ul>`;
+  refreshLive();
 }
 
 // ---- merchant: create a pay link ------------------------------------------

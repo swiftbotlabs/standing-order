@@ -105,3 +105,96 @@ label.inline input { width: auto; margin: 0; }
 .moments li { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--card); color: var(--muted); font-size: 15px; }
 .moments li b { color: var(--ink); }
 @media (max-width: 640px) { .moments { grid-template-columns: 1fr; } .moments video.short { max-width: 240px; margin: 0 auto; } }
+
+/* ---- home hero: one giant sentence + animated illustration of the main feature ---- */
+.hero2 h1 { font-size: clamp(40px, 6.4vw, 72px); line-height: 1.02; letter-spacing: -0.035em; margin: 16px 0 20px; max-width: 20ch; text-wrap: balance; }
+.hero-grid { display: grid; grid-template-columns: minmax(300px, 1.05fr) 1fr; gap: 28px; align-items: center; margin-bottom: 36px; }
+.hero-copy .lede { margin-top: 0; }
+.hero-copy .perm { margin: 12px 0 0; font-size: 16px; color: var(--ink); }
+.hero-copy .cta { margin: 20px 0 12px; }
+@media (max-width: 760px) { .hero-grid { grid-template-columns: 1fr; gap: 16px; } }
+.live { display: flex; align-items: center; gap: 8px; color: var(--muted); margin: 10px 0 0; }
+.live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); flex: none; animation: live-pulse 2s ease-in-out infinite; }
+.live.stale .dot { background: #b7791f; }
+@keyframes live-pulse { 50% { opacity: .35; } }
+
+/* wallet balance chip, top right next to the wallet button */
+.wbal { font-size: 14px; font-weight: 700; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.wbal.stale { opacity: .6; }
+@media (max-width: 520px) { .wbal { order: 1; } }
+
+.anim { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 10px 8px 4px; }
+.anim svg { width: 100%; height: auto; display: block; overflow: visible; }
+.anim text { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; text-anchor: middle; }
+.anim .node rect { fill: var(--bg); stroke: var(--line); stroke-width: 2; }
+.anim .ico { font-size: 24px; dominant-baseline: middle; }
+.anim .nl { fill: var(--ink); font-size: 14px; font-weight: 700; }
+.anim .ns { fill: var(--muted); font-size: 11px; }
+.anim .vault rect { fill: var(--bg); stroke: var(--brand); stroke-width: 3; }
+.anim .coin circle { fill: #f2b233; stroke: #b7791f; stroke-width: 2; }
+.anim .early path { stroke: var(--warn); stroke-width: 4; stroke-linecap: round; fill: none; }
+.anim .refused rect { fill: var(--warn); }
+.anim .refused text { fill: var(--bg); font-size: 13px; font-weight: 700; }
+.anim .trk { stroke: var(--line); stroke-width: 6; stroke-linecap: round; }
+.anim .trk-fill { stroke: var(--brand); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 300; stroke-dashoffset: 300; }
+.anim .tick line { stroke: var(--muted); stroke-width: 2; }
+.anim .tick text { fill: var(--muted); font-size: 11px; }
+.anim .cur circle { fill: var(--brand); stroke: var(--card); stroke-width: 3; }
+.anim .cancel rect { fill: var(--ink); } .anim .cancel text { fill: var(--bg); font-size: 11px; font-weight: 700; }
+.anim .cap, .anim .cap-still { fill: var(--ink); font-size: 14px; font-weight: 600; }
+.anim .cap-still { display: none; font-size: 12.5px; }
+
+.anim .coin, .anim .early, .anim .refused, .anim .vault, .anim .cur, .anim .cancel, .anim .cap, .anim .trk-fill { animation: 10s linear infinite both; }
+.anim .c1 { animation-name: so-c1; } .anim .c2 { animation-name: so-c2; } .anim .c3 { animation-name: so-c3; } .anim .c4 { animation-name: so-c4; }
+.anim .early { animation-name: so-early; } .anim .refused { animation-name: so-refused; } .anim .vault { animation-name: so-shake; }
+.anim .cur { animation-name: so-cur; } .anim .trk-fill { animation-name: so-fill; } .anim .cancel { animation-name: so-cancel; }
+.anim .k1 { animation-name: so-k1; } .anim .k2 { animation-name: so-k2; } .anim .k3 { animation-name: so-k3; } .anim .k4 { animation-name: so-k4; }
+
+/* coins: c1 paid at period 1, c2 at period 2, c3 + c4 go home on cancel */
+@keyframes so-c1 { 0% { opacity: 0; transform: none; } 3%, 8% { opacity: 1; transform: none; } 13% { transform: translate(80px, -22px); } 18% { opacity: 1; transform: translate(159px, 0); } 21%, 100% { opacity: 0; transform: translate(159px, 0); } }
+@keyframes so-c2 { 0% { opacity: 0; transform: none; } 3%, 46% { opacity: 1; transform: none; } 51% { transform: translate(72px, -22px); } 56% { opacity: 1; transform: translate(143px, 0); } 59%, 100% { opacity: 0; transform: translate(143px, 0); } }
+@keyframes so-c3 { 0% { opacity: 0; transform: none; } 3%, 74% { opacity: 1; transform: none; } 79% { transform: translate(-70px, -22px); } 84% { opacity: 1; transform: translate(-141px, 0); } 88%, 100% { opacity: 0; transform: translate(-141px, 0); } }
+@keyframes so-c4 { 0% { opacity: 0; transform: none; } 3%, 76% { opacity: 1; transform: none; } 81% { transform: translate(-78px, -22px); } 86% { opacity: 1; transform: translate(-157px, 0); } 90%, 100% { opacity: 0; transform: translate(-157px, 0); } }
+/* the early pull: comes in, hits the order, bounces back */
+@keyframes so-early { 0%, 26% { opacity: 0; transform: translateX(14px); } 28% { opacity: 1; transform: translateX(14px); } 32% { opacity: 1; transform: translateX(-30px); } 36% { opacity: 1; transform: translateX(22px); } 39% { transform: translateX(14px); } 42%, 100% { opacity: 0; transform: translateX(14px); } }
+@keyframes so-refused { 0%, 31% { opacity: 0; transform: translateY(6px); } 33%, 43% { opacity: 1; transform: none; } 46%, 100% { opacity: 0; transform: none; } }
+@keyframes so-shake { 0%, 31.5% { transform: none; } 32.5% { transform: translateX(-4px); } 33.5% { transform: translateX(4px); } 34.5% { transform: translateX(-2px); } 35.5%, 100% { transform: none; } }
+/* the clock: cursor + filled track, ticks at period 1 (x 90) and period 2 (x 180), stops at cancel (x 230) */
+@keyframes so-cur { 0% { transform: none; } 8% { transform: translateX(60px); } 30% { transform: translateX(105px); } 46% { transform: translateX(150px); } 70%, 100% { transform: translateX(200px); } }
+@keyframes so-fill { 0% { stroke-dashoffset: 300; } 8% { stroke-dashoffset: 240; } 30% { stroke-dashoffset: 195; } 46% { stroke-dashoffset: 150; } 70%, 100% { stroke-dashoffset: 100; } }
+@keyframes so-cancel { 0%, 69% { opacity: 0; transform: translateY(6px); } 72%, 96% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes so-k1 { 0%, 7% { opacity: 0; } 9%, 25% { opacity: 1; } 27%, 100% { opacity: 0; } }
+@keyframes so-k2 { 0%, 27% { opacity: 0; } 29%, 43% { opacity: 1; } 45%, 100% { opacity: 0; } }
+@keyframes so-k3 { 0%, 45% { opacity: 0; } 47%, 67% { opacity: 1; } 69%, 100% { opacity: 0; } }
+@keyframes so-k4 { 0%, 69% { opacity: 0; } 71%, 96% { opacity: 1; } 99%, 100% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim *, .live .dot { animation: none !important; }
+  .anim .cap { display: none; } .anim .cap-still { display: block; }
+  .anim .early { transform: translateX(-24px); } .anim .trk-fill { stroke-dashoffset: 150; }
+  .anim .cur { transform: translateX(150px); } .anim .cancel { opacity: 0; }
+}
+
+/* phones: balance chip and wallet button share one row so the hero stays in the first screen */
+@media (max-width: 520px) {
+  .top { padding: 10px 16px; }
+  .topr { width: 100%; gap: 8px 10px; }
+  .topr nav { flex-basis: 100%; text-align: right; }
+  .wbal { font-size: 12px; padding: 5px 10px; }
+  .btn.wc { min-height: 36px; font-size: 13px; padding: 0 10px; }
+  .hero2 h1 { margin-top: 8px; }
+  .btn.wc .wn { display: none; }
+}
+@media (max-width: 760px) { .hero-copy { display: flex; flex-direction: column; } .hero-copy .cta { order: -1; margin: 0 0 4px; } .hero-copy .lede { font-size: 16px; margin-top: 12px; } }
+
+/* home: the live plan card above the fold */
+.plan-card { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin: 14px 0 6px; background: var(--card); }
+.plan-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+.plan-price { font-size: 1.5rem; font-weight: 700; }
+.plan-card .cta { margin-top: 10px; }
+@media (max-width: 760px) {
+  /* phone: the plan and the subscribe button come before the illustration, so they are on the first screen */
+  .hero-grid .hero-copy { order: -1; display: flex; flex-direction: column; }
+  .hero-copy .plan-card { order: -1; margin-top: 0; }
+  .hero-copy .lede { font-size: 1rem; }
+}
