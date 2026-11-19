@@ -44,7 +44,8 @@ The whole order lifecycle, each step one **XO invitation** created, filled, sign
 
 **To open or join them:** first import the template file [`standing-order.template.json`](standing-order.template.json) (Import
 template in blaze.xo.cash or any XO wallet). It imports as template `bd50bcd19dae15e28291b2d2fec2e66f808f41781cfc921d4f6f168cc44586f2`,
-the identifier every invitation references. The file is written by `node export_template.mjs` with XO's own `serializeTemplate`
+the identifier every invitation references. **Use a chipnet account** in the tool: the invitations are chipnet transactions, and a
+mainnet account shows network-mismatch warnings for them. The file is written by `node export_template.mjs` with XO's own `serializeTemplate`
 (it keeps the template's bigints), and `node --import ./lib/no-native.mjs check_template_id.mjs` re-imports it and checks the identifier.
 
 | # | Action (role) | Invitation | Transaction |
