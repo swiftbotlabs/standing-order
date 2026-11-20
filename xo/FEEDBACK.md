@@ -1,25 +1,21 @@
-# Building with XO: our notes
+# XO feedback from porting Standing Order
 
-We ported Standing Order to XO during BLAZE. Standing Order is a SolidCash covenant for subscriptions: the subscriber locks coins once, the merchant can pull one fixed amount per period, and the subscriber can cancel and take the rest back. We kept the contract exactly as it was and wrote an XO template around it, then ran fund, claim and a final claim through invitations on chipnet.
+We ported Standing Order to XO on 19 Nov, during BLAZE. Standing Order is our SolidCash subscription covenant: you lock coins once, the merchant can take one fixed amount per period, and you can cancel and get the rest back. We left the contract alone and wrote an XO template around it, then ran fund, claim and a last claim through invitations on chipnet.
 
-Short version: we liked it, and most of our time went into a few rough edges rather than the contract.
+Overall it was a good experience. Most of the time went into a handful of rough edges, not into the contract.
 
-What we liked. We copied the shape of the faucet template, since our coin behaves the same way (it waits, pays out, keeps the rest). That gave us roles almost for free: subscriber, merchant, and a "service" role that anybody can take to trigger a payment that is due. After that, making and signing invitations through the engine was pretty painless. The debug tool was the highlight for us. Pasting the claim txid into Inspect and stepping through it (157 steps, op cost on the side) showed what the covenant was doing better than our own test output.
+What helped: we started from the faucet template because our coin behaves the same way (it waits, pays out, keeps the rest). That gave us the roles almost for free, including a "service" role anyone can take to trigger a payment that is due. Signing invitations through the engine just worked after that. The debug tool was the best part. We pasted the claim txid into Inspect and stepped through all 157 steps with the op cost next to them, and it showed us more than our own tests did.
 
-Things that tripped us up:
+What cost us time:
 
-The template id. We first saved the template with plain `JSON.stringify` to load it into the debug tool. It loaded, but under a different id than the one in our invitations, so Join Invitation kept saying "Template not found". It took us a while to see that the bigints had been dropped on the way out. `serializeTemplate` fixed it straight away. It would help if the docs said loudly that this is the way to export, or if the import warned you.
+- "Template not found". We saved the template with plain `JSON.stringify` so we could load it in the debug tool. It loaded, but with a different id from the one in our invitations, so Join Invitation kept failing with "Template not found". The bigints had been dropped on the way out. `serializeTemplate` fixed it at once. One line in the docs saying "export with serializeTemplate", or a warning on import, would have saved us an hour.
+- Three "network mismatch" errors. Our first account in the debug tool was a mainnet one and the invitations were chipnet. Obvious afterwards, but a hint pointing at the account would help.
+- The keyless claim. The point of our claim is that anyone can run it, but the engine only accepted the order's coin as an input once it was tracking that script, and the tracking lives in the engine's own state. So a fresh engine can't claim an order it didn't see funded, which is exactly the case of an outside party triggering payments. We worked around it by having the roles track the order script. A plain "watch this script hash" call would be better.
+- SQLite. `@xo-cash/state` loads its native SQLite modules even when you choose IndexedDB. We stubbed them out in our Node scripts.
+- Bytecode from another compiler. SolidCash gives you bytecode, not CashAssembly, so at first we put the contract body in as a hex literal after the argument pushes. We weren't sure that was right, so we asked in the General Protocols group.
 
-Mainnet vs chipnet in the debug tool. Our first account in the tool was a mainnet one, and our chipnet invitations came up with three "network mismatch" errors. Easy once you know, but a hint pointing at the account would have been nice.
+On 20 Nov General Protocols answered: bytecode plus constructor args reads better than a hex literal, and CashScript "snippets" (CashScript/cashscript#256) are the longer-term answer. We changed the Standing Order template the same day (the contract bytecode and its constructor args are now two named scripts, same order addresses) and re-ran fund, claim and last claim through invitations, plus fund, claim and cancel from the template, on chipnet.
 
-The keyless role. The whole point of our claim is that anyone can run it. But the engine would only take the order's coin as an input once it was tracking that script, and that tracking sits in the engine's own state. So a fresh engine can't claim an order it didn't see being funded, which is exactly the situation of a third party who triggers payments. We got around it by having the roles track the order script. A plain "watch this script hash" call would be much better.
+If we could ask for three things: the "watch this script hash" call, a check that compiles every action of a template once and lists unresolved variables, and one worked example of follow-up actions. Our claim-then-lastClaim chain took some trial and error.
 
-SQLite. `@xo-cash/state` pulls in its native SQLite modules even when you pick IndexedDB storage. We stubbed them out for our Node scripts. Loading them only when SQLite is actually chosen would avoid that.
-
-Bytecode from another compiler. SolidCash hands you bytecode, not CashAssembly, so we put the contract body into the template as a hex literal after the argument pushes. It works, but we honestly don't know if that is how you want it done. We asked in the General Protocols group. A documented "bytecode plus constructor args" option would make ports like this one a lot easier.
-
-What we'd add: the watch call above, a linter that compiles every action of a template once and tells you which variables are unresolved, and one worked example of follow-up actions. Ours (claim, then lastClaim when too little is left for another period) took some trial and error.
-
-Overall we'd use XO again for covenants with clear roles. Giving someone an invitation to look at and sign is a much easier story than handing them a script.
-
-Follow-up, 20 Nov: General Protocols answered our bytecode question (bytecode + args reads better than a hex literal; CashScript "snippets", CashScript/cashscript#256, are the longer-term answer), so the Standing Order template now keeps the compiled contract and its constructor arguments as two named scripts, the redeem script is just the one followed by the other, the order addresses are unchanged, and we re-ran fund, claim and last claim through XO invitations plus fund, claim and cancel built from the template on chipnet.
+We'd use XO again for covenants with clear roles. Handing someone an invitation to read and sign is a much easier story than handing them a script.
