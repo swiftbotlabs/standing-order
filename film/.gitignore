@@ -1,0 +1,6 @@
+frames/
+hero/out/
+hero/render/
+hero/cards/title/
+hero/cards/end/
+node_modules/

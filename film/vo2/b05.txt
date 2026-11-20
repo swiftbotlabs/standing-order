@@ -1,0 +1,1 @@
+Anyone can trigger the payment. The merchant, a bot, even you. It still pays one month, and only to the merchant.

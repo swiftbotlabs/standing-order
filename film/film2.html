@@ -1,0 +1,243 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Coins with rules (9x16)</title>
+<style>
+@font-face{font-family:"Instrument Sans";src:url(fonts/instrument-sans.woff2) format("woff2");font-weight:400 700}
+@font-face{font-family:"JetBrains Mono";src:url(fonts/jetbrains-mono.woff2) format("woff2");font-weight:100 800}
+:root{--paper:#F5F3EE;--ink:#14201A;--green:#0A8F5A;--green2:#D9EFE3;--muted:#5B6A62;--line:#DCD8CE;--red:#B3261E;--red2:#F7DEDB;--card:#fff;
+  --display:"Instrument Sans",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#000;overflow:hidden}
+#stage{font-variant-ligatures:none;position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:hidden;background:var(--paper);transform-origin:0 0;font-family:var(--display);color:var(--ink)}
+.abs{position:absolute}.scene{position:absolute;inset:0;visibility:hidden}
+.mask{display:inline-block;overflow:hidden;vertical-align:bottom;padding:0 .04em .06em}.mask>span{display:inline-block}
+.h1{font-weight:650;letter-spacing:-.035em;line-height:1.04}
+.mono{font-family:var(--mono);font-variant-ligatures:none}
+.lbl{font:500 26px var(--mono);letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.g{color:var(--green)}.r{color:var(--red)}
+.card{background:var(--card);border-radius:28px;border:1.5px solid var(--line);box-shadow:0 30px 60px -40px #14201a55}
+.note{display:flex;gap:26px;align-items:center;padding:30px 34px}
+.ic{width:72px;height:72px;border-radius:20px;display:flex;align-items:center;justify-content:center;font:700 40px var(--display);color:#fff;flex:none}
+.nt{font:650 40px var(--display);letter-spacing:-.02em}.ns{font:500 28px var(--mono);color:var(--muted);margin-top:4px}
+.coin{border-radius:999px;background:var(--green);color:#fff;font:700 30px var(--mono);display:flex;align-items:center;justify-content:center}
+.row{display:flex;justify-content:space-between;align-items:center;font:600 40px var(--display);padding:22px 0;border-top:1.5px solid #EEEAE2}
+.row:first-child{border-top:none}
+.chip{display:inline-flex;align-items:center;gap:14px;padding:16px 28px;border-radius:999px;font:600 38px var(--display);background:var(--card);border:2px solid var(--line)}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:22px 44px;border-radius:999px;font:650 40px var(--display);background:var(--ink);color:#fff}
+.log{font:500 34px var(--mono);line-height:1.5}
+#sub{left:60px;right:60px;top:1620px;text-align:center;font:600 46px/1.28 var(--display);color:var(--ink)}
+#sub span{background:#fff;box-decoration-break:clone;-webkit-box-decoration-break:clone;padding:4px 14px;border-radius:12px}
+#hud{position:fixed;left:0;right:0;bottom:0;height:44px;background:#000d;color:#ddd;font:13px var(--mono);display:flex;align-items:center;gap:12px;padding:0 12px;z-index:99}
+#hud input{flex:1}body.render #hud{display:none}
+</style></head>
+<body>
+<div id="stage">
+  <!-- S1: the surprise charge (illustration) -->
+  <div class="scene" id="s1">
+    <div class="abs lbl" style="left:90px;top:200px">Bitcoin Cash · how it works</div>
+    <div class="abs card note" id="n1" style="left:90px;right:90px;top:520px"><div class="ic" style="background:var(--green)">✓</div><div><div class="nt">Subscription cancelled</div><div class="ns">StreamFlix · 3 Mar</div></div></div>
+    <div class="abs card note" id="n2" style="left:90px;right:90px;top:740px;border-color:var(--red)"><div class="ic" style="background:var(--red)">$</div><div><div class="nt r">Card charged $19.99</div><div class="ns">StreamFlix · 3 Apr</div></div></div>
+    <div class="abs" id="bub" style="right:90px;top:1000px;max-width:760px;background:var(--ink);color:#fff;border-radius:40px 40px 10px 40px;padding:30px 40px;font:650 54px var(--display);letter-spacing:-.02em">I. CANCELLED. THIS.</div>
+    <div class="abs lbl" style="left:90px;top:1480px;font-size:22px">illustration</div>
+  </div>
+  <!-- S2: cards pull -->
+  <div class="scene" id="s2">
+    <div class="abs h1" id="s2h" style="left:90px;top:230px;font-size:104px"></div>
+    <div class="abs" id="ccard" style="left:90px;top:520px;width:520px;height:320px;border-radius:30px;background:#26342C;color:#fff;padding:36px 40px">
+      <div style="font:500 26px var(--mono);opacity:.75">CARD ON FILE</div><div style="font:600 46px var(--mono);margin-top:110px;letter-spacing:.08em">•••• 4242</div></div>
+    <div class="abs card" id="pulls" style="left:90px;right:90px;top:920px;padding:10px 40px"></div>
+    <div class="abs lbl" id="s2l" style="left:90px;top:1480px">they decide how much and when · illustration</div>
+  </div>
+  <!-- S3: BCH push -->
+  <div class="scene" id="s3">
+    <div class="abs h1" id="s3h" style="left:90px;top:230px;font-size:96px"></div>
+    <div class="abs card" id="wal" style="left:90px;right:90px;top:520px;padding:40px">
+      <div class="lbl">Your wallet</div><div class="h1" style="font-size:80px;margin-top:10px" id="wbal">50,000 sats</div>
+      <div style="margin-top:30px;display:flex;align-items:center;gap:30px"><div class="btn" id="send">Send</div><div style="font:500 32px var(--display);color:var(--muted)">nothing moves until you tap</div></div>
+      <div class="abs coin" id="wcoin" style="width:110px;height:110px;left:0;top:0;opacity:0">10k</div>
+    </div>
+    <div class="abs" id="tap" style="width:90px;height:90px;border-radius:50%;border:5px solid var(--green);opacity:0"></div>
+    <div class="abs" id="cal" style="left:90px;right:90px;top:1000px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px"></div>
+  </div>
+  <!-- S4: coins with rules -->
+  <div class="scene" id="s4">
+    <div class="abs h1" id="s4h" style="left:90px;top:220px;font-size:96px"></div>
+    <div class="abs" id="box" style="left:90px;top:480px;width:420px;height:420px;border:5px solid var(--ink);border-radius:36px;background:#fff">
+      <div class="abs lbl" style="left:0;top:-48px;font-size:22px">contract on Bitcoin Cash</div>
+      <div class="abs coin" id="bcoin" style="width:260px;height:260px;left:75px;top:75px;font-size:44px">40,000</div></div>
+    <div class="abs" id="rules" style="left:560px;right:70px;top:470px"></div>
+    <svg class="abs" id="tl" style="left:60px;top:1000px" width="960" height="190"></svg>
+    <div class="abs" id="merch" style="left:90px;top:1250px;font:600 40px var(--display)">Merchant <span class="mono g" id="msum">0 sats</span></div>
+    <div class="abs lbl" id="demo4" style="left:90px;top:1330px;font-size:24px;text-transform:none;letter-spacing:0">The period can be any length. In our mainnet test it was one block (about 10 minutes).</div>
+    <div class="abs chip" id="early" style="left:470px;top:1380px;color:var(--red);border-color:var(--red);opacity:0">✕ too early: refused</div>
+  </div>
+  <!-- S5: anyone can trigger -->
+  <div class="scene" id="s5">
+    <div class="abs h1" id="s5h" style="left:90px;top:220px;font-size:100px"></div>
+    <div class="abs chip" id="t0" style="left:90px;top:560px">Merchant</div>
+    <div class="abs chip" id="t1" style="left:400px;top:560px">a bot</div>
+    <div class="abs chip" id="t2" style="left:660px;top:560px">you</div>
+    <svg class="abs" id="tsvg" style="left:0;top:0" width="1080" height="1600"></svg>
+    <div class="abs btn" id="claim" style="left:390px;top:830px">pay</div>
+    <div class="abs card" id="only" style="left:90px;right:90px;top:1150px;padding:34px 40px">
+      <div class="lbl">the contract decides the outcome</div>
+      <div class="h1" style="font-size:62px;margin-top:12px">One month. <span class="g">To the merchant.</span></div>
+      <div style="font:500 32px var(--display);color:var(--muted);margin-top:10px">Never more, and only to the payees you agreed to at sign-up (the merchant, plus an optional split), whoever pressed it.</div></div>
+  </div>
+  <!-- S6: mainnet proof -->
+  <div class="scene" id="s6">
+    <div class="abs lbl" style="left:90px;top:220px">Bitcoin Cash mainnet · 16 Nov 2026</div>
+    <div class="abs h1" id="s6h" style="left:90px;top:280px;font-size:96px"></div>
+    <div class="abs card" id="lg" style="left:90px;right:90px;top:620px;padding:36px 40px">
+      <div class="log" id="lg1"><span style="color:var(--muted)">03:06:44</span>  claim, one block early</div>
+      <div class="log r" id="lg1r" style="padding-left:200px">→ refused by the network</div>
+      <div class="log" id="lg2" style="margin-top:26px"><span style="color:var(--muted)">03:19:35</span>  claim after one block</div>
+      <div class="log g" id="lg2r" style="padding-left:200px">→ accepted · 83989cdd…7aa0</div>
+      <div class="log" id="lg3" style="margin-top:18px;font-size:28px;color:var(--muted);padding-left:200px">block 977,563 · 10,000 sats to the merchant</div>
+    </div>
+    <div class="abs card" id="per6" style="left:90px;right:90px;top:1110px;padding:28px 36px;opacity:0"><div class="lbl" style="font-size:22px">test period</div><div class="h1" style="font-size:54px;margin-top:8px">1 block <span style="color:var(--muted)">(about 10 min)</span></div><div style="font:500 32px var(--display);color:var(--muted);margin-top:8px">A real plan uses one month. Same rule, longer wait.</div></div>
+    <div class="abs" id="stamp" style="left:520px;top:520px;padding:16px 30px;border:7px solid var(--red);border-radius:16px;color:var(--red);font:800 50px var(--display);letter-spacing:.04em;transform:rotate(-8deg);opacity:0">REFUSED</div>
+  </div>
+  <!-- S7: cancel -->
+  <div class="scene" id="s7">
+    <div class="abs h1" id="s7h" style="left:90px;top:220px;font-size:100px"></div>
+    <div class="abs" id="box7" style="left:90px;top:500px;width:420px;height:420px;border:5px solid var(--ink);border-radius:36px;background:#fff">
+      <div class="abs lbl" style="left:0;top:-48px;font-size:22px">contract</div></div>
+    <div class="abs card" id="wal7" style="left:600px;top:560px;width:390px;padding:30px"><div class="lbl" style="font-size:22px">your wallet</div><div class="h1" id="w7" style="font-size:60px;margin-top:8px">+ the rest</div></div>
+    <div class="abs coin" id="c7" style="width:220px;height:220px;font-size:40px">36,000</div>
+    <div class="abs btn" id="cbtn" style="left:90px;top:1000px;background:var(--red)">Cancel</div>
+    <div class="abs" id="tap7" style="width:90px;height:90px;border-radius:50%;border:5px solid var(--red);opacity:0"></div>
+    <div class="abs chip" id="c7tx" style="left:90px;top:1200px;font:500 32px var(--mono)">mainnet · cancel a68c39cb…e9f9</div>
+  </div>
+  <!-- S8: end -->
+  <div class="scene" id="s8">
+    <div class="abs h1" id="e1" style="left:90px;top:250px;font-size:96px"></div>
+    <div class="abs h1" id="e2" style="left:90px;top:370px;font-size:96px"></div>
+    <div class="abs lbl" id="e3" style="left:90px;top:620px">tested on Bitcoin Cash mainnet, 16 Nov 2026</div>
+    <div class="abs" id="txs" style="left:90px;right:90px;top:680px;display:grid;grid-template-columns:1fr 1fr;gap:14px"></div>
+    <div class="abs" id="logo" style="left:90px;right:90px;top:1150px">
+      <span class="h1" id="et" style="font-size:112px"></span>
+      <div id="eu" style="margin-top:28px;font:500 30px var(--display);color:var(--muted)">The app in this film: Standing Order<div class="mono" style="font-size:26px;white-space:nowrap;margin-top:6px">standing-order.swiftbotlab.workers.dev</div></div></div>
+  </div>
+  <div class="abs" id="sub"></div>
+</div>
+<div id="hud"><span id="tc">0.00s</span><input id="scrub" type="range" min="0" max="1" step="0.0005" value="0"></div>
+<script src="timing2.js"></script>
+<script>
+const VO=window.VO2;
+const W=(id,word,nth=0)=>{const c=VO.find(x=>x.id===id);let k=0;for(const[w,t]of c.words){if(w.replace(/[^\w'-]/g,'').toLowerCase()===word.toLowerCase()){if(k===nth)return t;k++}}throw new Error('no word '+id+' '+word)};
+const ST=id=>VO.find(x=>x.id===id).start, EN=id=>VO.find(x=>x.id===id).end;
+const DUR=+(EN('b08')+2.9).toFixed(2);
+const S={s1:[0,ST('b02')-.2],s2:[ST('b02')-.2,ST('b03')-.25],s3:[ST('b03')-.25,ST('b04')-.25],s4:[ST('b04')-.25,ST('b05')-.3],
+  s5:[ST('b05')-.3,ST('b06')-.25],s6:[ST('b06')-.25,ST('b07')-.25],s7:[ST('b07')-.25,ST('b08')-.25],s8:[ST('b08')-.25,DUR]};
+const FILM=window.FILM={w:1080,h:1920,fps:30,dur:DUR,bpm:94,cuts:Object.values(S).map(s=>s[0]).slice(1).map(x=>+x.toFixed(3)),events:[],loop:false};
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),lerp=(a,b,p)=>a+(b-a)*p,win=(t,a,b)=>t<=a?0:t>=b?1:(t-a)/(b-a);
+const E={out:p=>1-(1-p)**3,in:p=>p*p*p,io:p=>p<.5?4*p*p*p:1-(-2*p+2)**3/2,expo:p=>p>=1?1:1-2**(-10*p),expoIn:p=>p<=0?0:2**(10*p-10)};
+function spring(t,z=.85,f=2.2){if(t<=0)return 0;const w=2*Math.PI*f;const wd=w*Math.sqrt(1-z*z);return 1-Math.exp(-z*w*t)*(Math.cos(wd*t)+z/Math.sqrt(1-z*z)*Math.sin(wd*t))}
+const snap=t=>Math.round(t*FILM.fps)/FILM.fps;
+const $=s=>document.querySelector(s),css=(el,o)=>{for(const k in o)el.style[k]=o[k]};
+function words(el,text){el.innerHTML=text.split(' ').map(w=>{const c=w[0]==='^'?'g':w[0]==='!'?'r':'';const t=c?w.slice(1):w;return `<span class="mask"><span class="${c}">${t}</span></span>`}).join(' ');return[...el.querySelectorAll('.mask>span')]}
+function letters(el,text){el.innerHTML=[...text].map(c=>`<span style="display:inline-block;white-space:pre">${c}</span>`).join('');return[...el.children]}
+const rise=(T,els,t0,st=.07)=>els.forEach((w,i)=>{const p=spring(T-t0-i*st,.86,2.3);w.style.transform=`translateY(${(1-p)*108}%)`});
+const pop=(T,el,t0,dy=40,sc=0)=>{const p=spring(T-t0,.8,2.4);css(el,{opacity:clamp(p*2),transform:`translateY(${(1-p)*dy}px) scale(${1-sc*(1-p)})`})};
+const show=(id,on)=>{$(id).style.visibility=on?'visible':'hidden'};
+// subtitles: chunks of up to 6 words, split after punctuation
+const SUBS=[];for(const c of VO){const ph=[];let cur=[];c.words.forEach(([w,t],i)=>{cur.push([w,t]);if(i===c.words.length-1||/[.,:;?]$/.test(w)){ph.push(cur);cur=[]}});
+  const chunks=[];for(const p of ph){if(p.length<=7){chunks.push(p);continue}const k=Math.ceil(p.length/7),n=Math.ceil(p.length/k);for(let j=0;j<p.length;j+=n)chunks.push(p.slice(j,j+n))}
+  chunks.forEach((ch,j)=>{const nx=chunks[j+1];SUBS.push({t:ch[0][1],e:nx?nx[0][1]:c.end,txt:ch.map(x=>x[0]).join(' ')})})}
+// build
+const s2h=words($('#s2h'),'Cards: !they pull.');
+$('#pulls').innerHTML=[['$19.99','monthly plan'],['$24.99','new price'],['$29.99','after you cancelled']].map(([a,b],i)=>`<div class="row" id="p${i}"><span>${b}</span><b class="mono ${i===2?'r':''}">${a}</b></div>`).join('');
+const s3h=words($('#s3h'),'Bitcoin Cash: ^you push.');
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],PAT=['s','s','s','l','s','f','s','s','l','s','f','s'];
+$('#cal').innerHTML=MON.map((m,i)=>`<div class="card" id="cm${i}" style="padding:16px 20px;border-radius:18px"><div style="font:500 22px var(--mono);color:var(--muted)">${m}</div><div class="st" style="font:600 28px var(--display);margin-top:4px;height:36px"></div></div>`).join('');
+const s4h=words($('#s4h'),'Coins with ^rules.');
+const RU=[['take','merchant may take','one month'],['once','how often','once a month'],['more','never','more'],['early','never','early']];
+$('#rules').innerHTML=RU.map(([,a,b],i)=>`<div id="ru${i}" style="padding:18px 0;border-top:${i?'1.5px solid var(--line)':'none'}"><div style="font:500 24px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em">${a}</div><div class="h1" style="font-size:52px;${i>=2?'color:var(--green)':''}">${b}</div></div>`).join('');
+(()=>{let h=`<line x1="40" y1="70" x2="900" y2="70" stroke="#DCD8CE" stroke-width="8" stroke-linecap="round"/><line id="tlp" x1="40" y1="70" x2="40" y2="70" stroke="#0A8F5A" stroke-width="8" stroke-linecap="round"/>`;
+  const X=[60,340,620,900];['Lock','Month 1','Month 2','Month 3'].forEach((l,i)=>{h+=`<g id="td${i}" style="transform-box:fill-box;transform-origin:center"><circle cx="${X[i]}" cy="70" r="26" fill="#0A8F5A"/><text x="${X[i]}" y="80" text-anchor="middle" fill="#fff" style="font:700 26px var(--mono)">${i?i:'↓'}</text></g><text x="${X[i]}" y="146" text-anchor="middle" style="font:600 30px var(--display)" fill="#14201A">${l}</text>`});$('#tl').innerHTML=h})();
+const s5h=words($('#s5h'),'Anyone can press ^“pay”.');
+$('#tsvg').innerHTML=[[190,640],[490,640],[740,640]].map(([x,y],i)=>`<path id="tp${i}" d="M${x} ${y} C ${x} ${y+90}, 540 ${y+90}, 540 ${y+180}" fill="none" stroke="#14201A" stroke-width="5" stroke-linecap="round"/>`).join('')+`<path id="tout" d="M540 950 L540 1140" fill="none" stroke="#0A8F5A" stroke-width="8" stroke-linecap="round"/>`;
+const s6h=words($('#s6h'),'Too early? !Refused.');
+const s7h=words($('#s7h'),'Changed your mind?');
+const e1=words($('#e1'),'No card on file.'),e2=words($('#e2'),'No company holding your money.');
+const TX=[['subscribe','a813b51e'],['claim','83989cdd'],['pause','57dbfffb'],['resume','3cfa46b1'],['top up','f56cc629'],['claim','bcbd439c'],['cancel','a68c39cb']];
+$('#txs').innerHTML=TX.map(([a,b],i)=>`<div class="card" id="tx${i}" style="padding:14px 22px;border-radius:18px;display:flex;justify-content:space-between"><span style="font:600 32px var(--display)">${a}</span><span class="mono" style="font-size:28px;color:var(--muted)">${b}…</span></div>`).join('');
+const eT=letters($('#et'),'Coins with rules.');
+let tapAt=0;
+async function seek(T){
+  const ts=snap(T);for(const k in S)show('#'+k,T>=S[k][0]&&T<S[k][1]);
+  const sb=SUBS.filter(s=>ts>=s.t-.05&&ts<s.e+.15).pop();$('#sub').innerHTML=sb?`<span>${sb.txt}</span>`:'';
+  /* S1 */
+  if(T<S.s1[1]){const a=0;pop(T,$('#n1'),-.2,40);
+    const tA=W('b01','charged')-.15,p=E.out(win(T,tA,tA+.22));css($('#n2'),{opacity:p,transform:`translateY(${(1-p)*-60}px) scale(${lerp(1.08,1,p)}) translateX(${T>tA+.22&&T<tA+.6?Math.sin((T-tA)*70)*8*Math.exp(-(T-tA-.22)*9):0}px)`});
+    const tb=EN('b01')-.2;pop(T,$('#bub'),tb,50,.08);
+    const ex=E.expoIn(win(T,S.s1[1]-.35,S.s1[1]));$('#s1').style.transformOrigin='540px 900px';$('#s1').style.transform=`translateY(${-ex*140}px) scale(${1+.045*E.io(win(T,S.s1[0],S.s1[1]))})`;$('#s1').style.opacity=1-ex*.9}
+  /* S2 */
+  if(T>=S.s2[0]&&T<S.s2[1]){const a=S.s2[0];rise(T,s2h,a+.05,.07);
+    const c=spring(T-a-.1,.9,1.8);css($('#ccard'),{transform:`translateX(${(1-c)*-120}px) rotate(${lerp(-6,-2,c)}deg)`,opacity:clamp(c*2)});
+    pop(T,$('#pulls'),W('b02','pull')-.35,30);
+    [W('b02','pull'),W('b02','amount'),W('b02','time')].forEach((t,i)=>pop(T,$('#p'+i),t-.15,24));
+    $('#s2l').style.opacity=E.out(win(T,W('b02','time'),W('b02','time')+.4));
+    const ex=E.expoIn(win(T,S.s2[1]-.35,S.s2[1]));$('#s2').style.transformOrigin='540px 900px';$('#s2').style.transform=`translateY(${-ex*140}px) scale(${1+.045*E.io(win(T,S.s2[0],S.s2[1]))})`;$('#s2').style.opacity=1-ex*.9}
+  /* S3 */
+  if(T>=S.s3[0]&&T<S.s3[1]){const a=S.s3[0];rise(T,s3h,a+.05,.07);pop(T,$('#wal'),a+.2,40);
+    const tt=W('b03','send')-.2;const r=win(T,tt,tt+.45);css($('#tap'),{left:(90+40+80)+'px',top:(520+40+240)+'px',opacity:r>0&&r<1?1-r:0,transform:`scale(${.4+r})`});
+    $('#send').style.transform=`scale(${T>=tt&&T<tt+.18?.94:1})`;
+    const cm=E.io(win(T,tt+.1,tt+1.0));css($('#wcoin'),{opacity:T>tt+.05&&cm<1?1:0,left:lerp(560,900,cm)+'px',top:lerp(190,-120,cm)+'px'});
+    $('#wbal').textContent=(T>=tt+1.0?'40,000':'50,000')+' sats';
+    const t0=W('b03','pay')-.3;MON.forEach((m,i)=>{const el=$('#cm'+i),p=spring(T-(W('b03','Safe')-.2)-i*.03,.9,2.6);css(el,{opacity:clamp(p*2),transform:`translateY(${(1-p)*30}px)`});
+      const on=ts>=t0+i*.12,k=PAT[i],st=el.querySelector('.st');st.textContent=on?(k==='s'?'✓ sent':k==='l'?'✓ late':'✕ forgot'):'';st.style.color=k==='f'?'var(--red)':k==='l'?'#9A6B00':'var(--green)';
+      el.style.borderColor=on&&k==='f'?'var(--red)':'var(--line)';el.style.background=on&&k==='f'?'var(--red2)':'var(--card)'});
+    const ex=E.expoIn(win(T,S.s3[1]-.35,S.s3[1]));$('#s3').style.transformOrigin='540px 900px';$('#s3').style.transform=`translateY(${-ex*140}px) scale(${1+.045*E.io(win(T,S.s3[0],S.s3[1]))})`;$('#s3').style.opacity=1-ex*.9}
+  /* S4 */
+  if(T>=S.s4[0]&&T<S.s4[1]){const a=S.s4[0];rise(T,s4h,a+.05,.08);
+    pop(T,$('#box'),a+.45,30);const tc=W('b04','Lock')-.05,d=E.in(win(T,tc,tc+.5));css($('#bcoin'),{top:lerp(-520,75,d)+'px',opacity:T>=tc-.05?1:0});
+    RU.forEach(([w],i)=>pop(T,$('#ru'+i),W('b04',w)-.25,24));
+    $('#tl').style.opacity=E.out(win(T,W('b04','month')-.6,W('b04','month')-.2));$('#merch').style.opacity=$('#tl').style.opacity;
+    const t1=W('b04','month')-.2,t2=W('b04','more')-.1;const prog=key2(T,[[t1,0],[t2,.36],[EN('b04')+.4,.48]]);$('#tlp').setAttribute('x2',lerp(40,900,prog));
+    const paid=T>=t2+.2?1:0;$('#msum').textContent=(paid*10000).toLocaleString('en-US')+' sats';$('#bcoin').textContent=(40000-paid*10000).toLocaleString('en-US');
+    $('#td1').style.transform=`scale(${T>=t2?1+.25*Math.exp(-(T-t2)*6):.6})`;['#td1','#td2','#td3'].forEach((s,i)=>{$(s).style.opacity=i===0&&T>=t2-.3?1:.3});
+    const te=W('b04','early')-.25;css($('#early'),{opacity:T<te?0:1,transform:`translateX(${-(1-E.out(win(T,te,te+.3)))*40}px)`});
+    const ex=E.expoIn(win(T,S.s4[1]-.35,S.s4[1]));$('#s4').style.transformOrigin='540px 900px';$('#s4').style.transform=`translateY(${-ex*140}px) scale(${1+.045*E.io(win(T,S.s4[0],S.s4[1]))})`;$('#s4').style.opacity=1-ex*.9}
+  /* S5 */
+  if(T>=S.s5[0]&&T<S.s5[1]){const a=S.s5[0];rise(T,s5h,a+.05,.08);
+    const tw=[W('b05','merchant'),W('b05','bot'),W('b05','you')];
+    tw.forEach((t,i)=>{pop(T,$('#t'+i),t-.3,30);const pa=$('#tp'+i);pa.style.strokeDasharray='400';pa.style.strokeDashoffset=400*(1-E.out(win(T,t-.05,t+.35)))});
+    pop(T,$('#claim'),W('b05','trigger')-.1,30,.1);const pr=tw.some(t=>T>=t+.3&&T<t+.5);$('#claim').style.transform+=pr?' scale(.94)':'';
+    const to=$('#tout');to.style.strokeDasharray='200';to.style.strokeDashoffset=200*(1-E.out(win(T,W('b05','pays')-.2,W('b05','pays')+.3)));
+    pop(T,$('#only'),W('b05','pays')-.1,30);
+    const ex=E.expoIn(win(T,S.s5[1]-.35,S.s5[1]));$('#s5').style.transformOrigin='540px 900px';$('#s5').style.transform=`translateY(${-ex*140}px) scale(${1+.045*E.io(win(T,S.s5[0],S.s5[1]))})`;$('#s5').style.opacity=1-ex*.9}
+  /* S6 */
+  if(T>=S.s6[0]&&T<S.s6[1]){const a=S.s6[0];rise(T,s6h,a+.05,.08);pop(T,$('#lg'),a+.15,30);
+    pop(T,$('#lg1'),a+.3,14);const tr=W('b06','refuses')-.1;pop(T,$('#lg1r'),tr,14);
+    const sp=win(T,tr,tr+.12);css($('#stamp'),{opacity:T>=tr?1:0,transform:`rotate(-8deg) scale(${T>=tr?lerp(1.6,1,E.out(sp)):1.6})`});
+    const tm=W('b06','tried')-.1;[['#lg2',0],['#lg2r',.35],['#lg3',.6]].forEach(([s,o])=>pop(T,$(s),tm+o,14));pop(T,$('#per6'),W('b06','ten-minute')-.35,30);
+    const ex=E.expoIn(win(T,S.s6[1]-.35,S.s6[1]));$('#s6').style.transformOrigin='540px 900px';$('#s6').style.transform=`translateY(${-ex*140}px) scale(${1+.045*E.io(win(T,S.s6[0],S.s6[1]))})`;$('#s6').style.opacity=1-ex*.9}
+  /* S7 */
+  if(T>=S.s7[0]&&T<S.s7[1]){const a=S.s7[0];rise(T,s7h,a+.05,.08);pop(T,$('#box7'),a+.15,30);pop(T,$('#wal7'),a+.3,30);pop(T,$('#cbtn'),a+.35,30);
+    const tc=W('b07','Cancel')-.05;const r=win(T,tc,tc+.45);css($('#tap7'),{left:'200px',top:'1000px',opacity:r>0&&r<1?1-r:0,transform:`scale(${.4+r})`});
+    const m=E.io(win(T,W('b07','straight')-.6,W('b07','straight')+.3));css($('#c7'),{left:lerp(190,700,m)+'px',top:lerp(600,620,m)-Math.sin(m*Math.PI)*160+'px',transform:`scale(${lerp(1,.55,m)})`,opacity:m>=1?0:1});
+    $('#w7').textContent=m>=1?'36,000 back':'+ the rest';$('#w7').style.color=m>=1?'var(--green)':'var(--ink)';
+    pop(T,$('#c7tx'),W('b07','you')-.2,20);$('#s7').style.transformOrigin='540px 900px';$('#s7').style.transform=`scale(${1+.045*E.io(win(T,S.s7[0],S.s7[1]))})`}
+  /* S8 */
+  if(T>=S.s8[0]){const a=S.s8[0];rise(T,e1,W('b08','No')-.15,.07);rise(T,e2,W('b08','No',1)-.15,.07);
+    const tr=W('b08','Just')-.35;$('#e3').style.opacity=E.out(win(T,tr,tr+.4));TX.forEach((x,i)=>pop(T,$('#tx'+i),tr+.1+i*.08,20));
+    const ts2=W('b08','coins')-.15;eT.forEach((l,i)=>{const p=spring(T-ts2-i*.03,.9,2.4);l.style.transform=`translateY(${(1-p)*50}px)`;l.style.opacity=clamp(p*2)});
+    $('#eu').style.opacity=E.out(win(T,EN('b08')+.2,EN('b08')+.7));$('#s8').style.transformOrigin='540px 1200px';$('#s8').style.transform=`scale(${1+.03*E.io(win(T,S.s8[0],S.s8[1]))})`}
+}
+function key2(t,K){if(t<=K[0][0])return K[0][1];for(let i=1;i<K.length;i++){const[a,va]=K[i-1],[b,vb]=K[i];if(t<=b)return lerp(va,vb,E.io(win(t,a,b)))}return K[K.length-1][1]}
+window.SCORE=async(ac,F)=>{const load=async u=>ac.decodeAudioData(await(await fetch(u)).arrayBuffer());const out=ac.createGain();out.connect(ac.destination);
+  const music=ac.createGain();music.connect(out);const ms=ac.createBufferSource();ms.buffer=await load('sound/music.flac');ms.connect(music);ms.start(0,0);
+  const base=.30,duck=base*.36;music.gain.setValueAtTime(0,0);music.gain.linearRampToValueAtTime(base,.8);
+  music.gain.setValueAtTime(base,Math.max(0,VO[0].start-.35));music.gain.linearRampToValueAtTime(duck,VO[0].start);
+  for(let i=0;i<VO.length;i++){const c=VO[i];const b=await load(c.file);const s=ac.createBufferSource();s.buffer=b;s.connect(out);s.start(c.start);
+    const nx=VO[i+1],gEnd=c.start+b.duration;if(!nx||nx.start-gEnd>1.6){music.gain.setValueAtTime(duck,gEnd);music.gain.linearRampToValueAtTime(base,gEnd+.5);if(nx){music.gain.setValueAtTime(base,nx.start-.35);music.gain.linearRampToValueAtTime(duck,nx.start)}}}
+  music.gain.setValueAtTime(base,F.dur-2.4);music.gain.linearRampToValueAtTime(0,F.dur-.2);
+  const fx={};for(const n of['tap','stamp'])fx[n]=await load(`sound/${n}.wav`);
+  const ev=[[W('b03','send')-.2,'tap',.6],[W('b05','merchant')+.3,'tap',.45],[W('b05','bot')+.3,'tap',.45],[W('b05','you')+.3,'tap',.45],[W('b06','refuses')-.1,'stamp',.55],[W('b07','Cancel')-.05,'tap',.6]];
+  for(const[tt,n,v]of ev){const s=ac.createBufferSource();s.buffer=fx[n];const g=ac.createGain();g.gain.value=v;s.connect(g).connect(out);s.start(tt+.008)}};
+window.seek=seek;const RENDER=new URLSearchParams(location.search).has('render');
+function fit(){if(RENDER)return;const s=Math.min(innerWidth/FILM.w,(innerHeight-44)/FILM.h);$('#stage').style.transform=`scale(${s})`}addEventListener('resize',fit);
+if(RENDER)document.body.classList.add('render');else{let T=+(new URLSearchParams(location.search).get('t')||0);const sh=()=>{seek(T);$('#scrub').value=T/FILM.dur;$('#tc').textContent=T.toFixed(2)+'s'};$('#scrub').oninput=e=>{T=+e.target.value*FILM.dur;sh()};fit();sh()}
+Promise.all([document.fonts.ready]).then(()=>{seek(0);window.ready=true});
+</script></body></html>
