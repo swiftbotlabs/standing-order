@@ -21,3 +21,5 @@ Bytecode from another compiler. SolidCash hands you bytecode, not CashAssembly, 
 What we'd add: the watch call above, a linter that compiles every action of a template once and tells you which variables are unresolved, and one worked example of follow-up actions. Ours (claim, then lastClaim when too little is left for another period) took some trial and error.
 
 Overall we'd use XO again for covenants with clear roles. Giving someone an invitation to look at and sign is a much easier story than handing them a script.
+
+Follow-up, 20 Nov: General Protocols answered our bytecode question (bytecode + args reads better than a hex literal; CashScript "snippets", CashScript/cashscript#256, are the longer-term answer), so the Standing Order template now keeps the compiled contract and its constructor arguments as two named scripts, the redeem script is just the one followed by the other, the order addresses are unchanged, and we re-ran fund, claim and last claim through XO invitations plus fund, claim and cancel built from the template on chipnet.

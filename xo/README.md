@@ -16,9 +16,12 @@ solidcash scripts and dapp. After, the same covenant is an XO template, so any X
 ## How the port works
 
 Modelled on XO's `faucetCashTemplate` (same shape: a coin that waits a number of blocks, pays out, returns the rest to itself).
-- `standingOrderRedeemBytecode` pushes the six constructor arguments (`orderId maxFee periodBlocks amountPerPeriod subscriberPkh merchantPkh`)
-  in front of the compiled contract body, exactly as the solidcash SDK does. The body is read from `standing_order.body.json`, which
-  `extract_tail.mjs` derives from the project's own compiled artifact (and checks that it does not depend on the arguments).
+- **Bytecode + args** (since 20 Nov, the form General Protocols said they prefer): the compiled contract is its own named script,
+  `standingOrderContractBytecode`, and the six constructor arguments are another, `standingOrderConstructorArgs`
+  (`<orderId> <maxFee> <periodBlocks> <amountPerPeriod> <subscriberPkh> <merchantPkh>`, pushed as the solidcash SDK pushes them).
+  `standingOrderRedeemBytecode` is just `standingOrderConstructorArgs standingOrderContractBytecode`. The bytes, and so every order
+  address, are the same as before. The body is read from `standing_order.body.json`, which `extract_tail.mjs` derives from the
+  project's own compiled artifact (and checks that it does not depend on the arguments).
 - `claim` spends the order coin with `sequenceNumber: $(<periodBlocks>)` and the claim selector; output 0 pays the merchant
   `amountPerPeriod`, output 1 returns `orderSatoshis - amountPerPeriod - maxFee` to the same covenant. `lastClaim` pays the remainder.
 - `cancel` spends the order coin with the cancel selector plus one of the subscriber's own coins, signed `all_outputs`, as the last input;
@@ -27,11 +30,12 @@ Modelled on XO's `faucetCashTemplate` (same shape: a coin that waits a number of
 
 ## Proof
 
-**The chipnet invitations match the current code** (re-checked 19 Nov 2026, 21:40 UTC, on `main`): re-extracting both covenant bodies
-from the current compiled artifacts (`extract_tail.mjs`, `extract_plus.mjs`) and re-exporting both templates (`export_template.mjs`)
-reproduces the committed files byte for byte, and both template files import as the identifiers every invitation names
-(`bd50bcd1…` for Standing Order, `d68020b8…` for Standing Order Plus; `check_template_id.mjs`, run with any throwaway test mnemonic in
-`XO_MNEMONIC_FILE`). The offline checks pass on `main`: 15/15 and 13/13 (`npm test`).
+**The chipnet invitations match the current code** (re-checked 20 Nov 2026 after the bytecode + args change): re-exporting both
+templates (`export_template.mjs`) reproduces the committed files, and both template files import as the identifiers every invitation
+names (`26d8e313…` for Standing Order, `d68020b8…` for Standing Order Plus; `check_template_id.mjs`, run with any throwaway test mnemonic
+in `XO_MNEMONIC_FILE`). The offline checks pass: 15/15 and 13/13 (`npm test`). The 19 Nov run with the earlier hex-literal form is kept
+in [`invitations-hexliteral-2026-11-19/`](invitations-hexliteral-2026-11-19/) with its template file
+[`standing-order.template.hexliteral-2026-11-19.json`](standing-order.template.hexliteral-2026-11-19.json) (`bd50bcd1…`).
 
 **Offline, against the BCH 2026 VM** (`npm ci && npm test`, no network): 15 checks pass.
 - template address and redeem script == the solidcash build (2 argument sets);
@@ -49,16 +53,16 @@ The whole order lifecycle, each step one **XO invitation** created, filled, sign
 (`serializeInvitation` output): paste one into the debug tool at [blaze.xo.cash](https://blaze.xo.cash) to inspect it.
 
 **To open or join them:** first import the template file [`standing-order.template.json`](standing-order.template.json) (Import
-template in blaze.xo.cash or any XO wallet). It imports as template `bd50bcd19dae15e28291b2d2fec2e66f808f41781cfc921d4f6f168cc44586f2`,
+template in blaze.xo.cash or any XO wallet). It imports as template `26d8e3130f933b758ac0d8ef7a5fb6988bec6683efd1d17cabc2cfd2fab8db7d`,
 the identifier every invitation references. **Use a chipnet account** in the tool: the invitations are chipnet transactions, and a
 mainnet account shows network-mismatch warnings for them. The file is written by `node export_template.mjs` with XO's own `serializeTemplate`
 (it keeps the template's bigints), and `node --import ./lib/no-native.mjs check_template_id.mjs` re-imports it and checks the identifier.
 
 | # | Action (role) | Invitation | Transaction |
 |---|---|---|---|
-| 1 | `fund` (subscriber): 45,000 sats into the order; the engine picks the wallet's coins, adds change, signs | [1-fund.xo.json](invitations/1-fund.xo.json) | [6cac3b95…](https://chipnet.chaingraph.cash/tx/6cac3b95e9dba8ab6e8b67f1b70a242e704911c71d8590d04948280ce75e4c2f) |
-| 2 | `claim` (service: anyone, no key): 20,000 to the merchant, 24,000 back into the order | [2-claim.xo.json](invitations/2-claim.xo.json) | [ff9d539a…](https://chipnet.chaingraph.cash/tx/ff9d539a08d4ddbf21e5b5f7136ee5ea534f2e27668d6bdd761e87ae2f8ea5d4) |
-| 3 | `lastClaim` (service), the follow-up: too little left for another period, so the remainder minus the fee (23,000) goes to the merchant and the order ends | [3-lastClaim.xo.json](invitations/3-lastClaim.xo.json) | [90bd3f2d…](https://chipnet.chaingraph.cash/tx/90bd3f2d6847de02af165f083d027b639ec7a245bcb50e81846726e9f908be91) |
+| 1 | `fund` (subscriber): 45,000 sats into the order; the engine picks the wallet's coins, adds change, signs | [1-fund.xo.json](invitations/1-fund.xo.json) | [bb159770…](https://chipnet.chaingraph.cash/tx/bb159770ff44a15f35dda257cdde9ff71388fbb86bfb7e35b6a19715fe83f23a) |
+| 2 | `claim` (service: anyone, no key): 20,000 to the merchant, 24,000 back into the order | [2-claim.xo.json](invitations/2-claim.xo.json) | [f2b5ea76…](https://chipnet.chaingraph.cash/tx/f2b5ea763982d8a6430403cb8a31b88ffbd0d02c9c52a45e2e1738562c1d854a) |
+| 3 | `lastClaim` (service), the follow-up: too little left for another period, so the remainder minus the fee (23,000) goes to the merchant and the order ends | [3-lastClaim.xo.json](invitations/3-lastClaim.xo.json) | [f32fc44e…](https://chipnet.chaingraph.cash/tx/f32fc44e21ffa2e7f1011a1c0a3e91e4f9ed3cb6aa14937b813524ea8210e68b) |
 
 Both claims were first refused by the node with `non-BIP68-final` (the order coin's relative timelock was not yet met in its view)
 and accepted on a retry a few minutes later: the period is enforced by the network, not by our code. `invitations/run.json` lists the steps with their times.
@@ -77,9 +81,9 @@ Run it in one go: the demo keeps the XO state in memory (`fake-indexeddb`), so a
 
 | Step | Transaction |
 |---|---|
-| fund 60,000 sats into the order | [7dab4bf2…](https://chipnet.chaingraph.cash/tx/7dab4bf2e7fae317b3a38ca3cd733727872c2fde34ed6e914e1a4823731e095c) |
-| claim one period: 20,000 to the merchant, 39,000 back to the order | [14fefbea…](https://chipnet.chaingraph.cash/tx/14fefbea07686ffa2039a1d59d4cd421baa98b0cb1ff7bd11e6d97afe4aa9fff) |
-| cancel: the rest back to the subscriber | [2366dca6…](https://chipnet.chaingraph.cash/tx/2366dca6ebe66a339b3ad5adbea31e98ee01be4db225acff2879b26b056ca4c7) |
+| fund 60,000 sats into the order | [6f90356a…](https://chipnet.chaingraph.cash/tx/6f90356a71ae7a8787887de75662391c6081771c6bdc0fc59a0d263f9cd14577) |
+| claim one period: 20,000 to the merchant, 39,000 back to the order | [3660f6ed…](https://chipnet.chaingraph.cash/tx/3660f6ed4fd81f00373549c8ea317ee078a3f9200fc8c6fc6f21f3d677522c08) |
+| cancel: the rest back to the subscriber | [159f0c9b…](https://chipnet.chaingraph.cash/tx/159f0c9b2cc8fd116c69904563a66881064a6b4bd4014ae211981a3c5e726e1a) |
 
 Before the claim confirmed, the network refused the early payment (`non-BIP68-final`): the period is enforced by consensus.
 
@@ -135,5 +139,7 @@ XO_MNEMONIC_FILE=<file> node --import ./lib/no-native.mjs demo.mjs import   # XO
 2. `@xo-cash/state` imports native SQLite at load time even when IndexedDB storage is chosen.
 3. A covenant input of a role that holds no key (anyone may trigger a claim) is only accepted once the engine tracks the order's
    script hash; that tracking lives in the engine's state, so a fresh engine cannot claim an order it did not see funded.
-4. A covenant compiled by another toolchain (SolidCash) has no CashAssembly source; we embed its body as a hex literal after the argument
-   pushes. A documented "bytecode + constructor args" pattern would make such ports easier.
+4. A covenant compiled by another toolchain (SolidCash) has no CashAssembly source. We first embedded its body as a hex literal after the
+   argument pushes; after General Protocols answered that bytecode + args reads better (and that CashScript "snippets",
+   CashScript/cashscript#256, are the longer-term answer), Standing Order now uses separate bytecode and constructor-args scripts.
+   Standing Order Plus still uses the hex-literal form. A documented "bytecode + constructor args" pattern would make such ports easier.

@@ -90,8 +90,13 @@ export const standingOrderTemplate = {
     subscriberLockingScript: { name: "Subscriber address", description: "P2PKH of the subscriber.", icon: "subscriber", lockingType: "p2s", lockingBytecode: "subscriberLockingBytecode", state: { variables: [], secrets: [] }, selectable: false, balance: NO_BALANCE, roles: ROLES },
   },
   scripts: {
-    // <orderId> <maxFee> <period> <amountPerPeriod> <subscriber> <merchant> then the contract body (constructor args reversed, as solidcash pushes them)
-    standingOrderRedeemBytecode: `<orderId> <maxFee> <periodBlocks> <amountPerPeriod> <subscriberPkh> <merchantPkh> 0x${bodyHex}`,
+    // Bytecode + args: the compiled contract and its constructor arguments are separate named scripts, and the redeem script
+    // is the args followed by the bytecode (same bytes the solidcash SDK produces, so the address is unchanged).
+    // Compiled contract bytecode: contracts/standing_order.scash, solidc 0.50.0 (standing_order.body.json); no argument inside.
+    standingOrderContractBytecode: `0x${bodyHex}`,
+    // Constructor arguments, last argument pushed first (as solidcash pushes them): merchant, subscriber, amount, period, fee, id.
+    standingOrderConstructorArgs: "<orderId> <maxFee> <periodBlocks> <amountPerPeriod> <subscriberPkh> <merchantPkh>",
+    standingOrderRedeemBytecode: "standingOrderConstructorArgs standingOrderContractBytecode",
     standingOrderLockingBytecode: "OP_HASH256 <$(<standingOrderRedeemBytecode> OP_HASH256)> OP_EQUAL",
     claimUnlockingBytecode: `<${CLAIM}> <standingOrderRedeemBytecode>`,
     cancelUnlockingBytecode: `<${CANCEL}> <standingOrderRedeemBytecode>`,
