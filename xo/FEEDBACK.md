@@ -1,19 +1,19 @@
-# XO feedback from porting Standing Order
+# XO feedback (Standing Order port, 19-20 Nov)
 
-We ported Standing Order to XO on 19 Nov, during BLAZE. Standing Order is our SolidCash subscription covenant: you lock coins once, the merchant can take one fixed amount per period, and you can cancel and get the rest back. We left the contract alone, wrote an XO template around it, and ran fund, claim and a last claim through invitations on chipnet. Versions: @xo-cash/engine 0.1.1-next.18029697917, @xo-cash/state 0.0.6, @xo-cash/templates 0.0.12, @xo-cash/utils 0.0.11, Node 22.
+The bigint thing cost us the most time, about an hour. We built the template object, saved it with `JSON.stringify(T)`, imported it in the debug tool, then tried Join Invitation with one of our chipnet invitations: "Template not found". The import works, but under a different template id, because the bigints are gone. `serializeTemplate` fixed it straight away. One line in the docs, or a warning on import, would have saved that hour.
 
-Overall it was a good experience. What helped most: starting from the faucet template, since our coin behaves the same way (it waits, pays out, keeps the rest), which gave us the roles almost for free, including a "service" role anyone can take to trigger a payment that is due. And the debug tool: we pasted the claim txid into Inspect and stepped through all 157 steps with the op cost next to them, and learned more than from our own tests.
+Other things that slowed us down, each with how to hit it:
 
-What cost us time, with how to hit it again:
+- Network mismatch. Open the debug tool with a mainnet account and load a chipnet invitation: three "network mismatch" errors and nothing pointing at the account. Switching the account to chipnet fixed it.
+- Keyless claim. Fund an order from one engine, start a second engine with a fresh database and the same template, build the claim against the order's coin. The second engine won't use that coin until it tracks the order's locking script, and that tracking lives in its own state. So someone who only wants to trigger a due payment can't. Our workaround: name the order output by its locking bytecode in the fund action, so the roles track the script.
+- SQLite in Node. We create the engine with IndexedDB storage (fake-indexeddb), but importing `@xo-cash/state` still pulls in the native SQLite modules. We map them to a stub.
+- Bytecode from SolidCash. SolidCash gives bytecode, not CashAssembly, so first we pasted the contract body as a hex literal after the argument pushes. On 20 Nov GP told us bytecode plus constructor args reads better (and that CashScript snippets, CashScript/cashscript#256, are the longer-term answer). We switched the same day; the order addresses stayed the same and fund, claim and last claim re-ran on chipnet.
 
-- "Template not found". Build the template object, write it with `JSON.stringify(T)`, import that file in the debug tool, then Join Invitation with one of our chipnet invitations. The import works but under a different template id, and Join fails with "Template not found": the bigints were dropped. Exporting with `serializeTemplate` fixed it at once (our check script now prints MATCH). A line in the docs, or a warning on import, would have saved us an hour.
-- Three "network mismatch" errors. Open the debug tool with a mainnet account and load a chipnet invitation. You get three errors and no hint that the account is the problem. Switching the account to chipnet fixed it.
-- The keyless claim. Fund an order with one engine, then start a second engine with a fresh database and the same template, and build the claim against the order's coin. The engine won't take that coin as an input until it tracks the order's locking script, and the tracking lives in its own state. So an outside party who only wants to trigger a due payment can't. We worked around it by naming the order output by its locking bytecode in the fund action, so the roles track the script. A plain "watch this script hash" call would be better.
-- SQLite. Create the engine with IndexedDB storage in Node (we used fake-indexeddb): just importing `@xo-cash/state` still pulls in the native SQLite modules. We map them to a stub in our Node scripts.
-- Bytecode from another compiler. SolidCash gives you bytecode, not CashAssembly, so at first we put the contract body in as a hex literal after the argument pushes. On 20 Nov General Protocols told us bytecode plus constructor args reads better, and that CashScript "snippets" (CashScript/cashscript#256) are the longer-term answer. We switched the same day: same order addresses, and fund, claim and last claim re-ran through invitations on chipnet.
+What helped: starting from the faucet template, because our coin behaves the same way (waits, pays out, keeps the rest), so the roles came almost for free. And Inspect in the debug tool: we pasted our claim txid and stepped through all 157 steps with the op cost next to each one. We learned more there than from our own tests.
 
-The same lessons carried straight over to Standing Order Plus (split payee, pause, resume, cancel), which is the template we entered for Build with XO.
+Versions: @xo-cash/engine 0.1.1-next.18029697917, @xo-cash/state 0.0.6, @xo-cash/templates 0.0.12, @xo-cash/utils 0.0.11, Node 22. The same lessons carried over to Standing Order Plus (split payee, pause, resume, cancel), the template we entered for Build with XO.
 
-Three things we'd ask for: the "watch this script hash" call, a check that compiles every action of a template once and lists unresolved variables, and one worked example of follow-up actions (our claim-then-lastClaim chain took some trial and error).
-
-We'd use XO again for covenants with clear roles. Handing someone an invitation to read and sign is a much easier story than handing them a script.
+What we'd ask for:
+- a "watch this script hash" call;
+- a check that compiles every action of a template once and lists unresolved variables;
+- one worked example of follow-up actions (our claim then lastClaim chain took trial and error).
